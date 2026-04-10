@@ -1,0 +1,54 @@
+{
+  "autoUpdaterStatus": "disabled",
+  "env": {},
+  "includeCoAuthoredBy": false,
+  "preferredNotifChannel": "terminal_bell",
+  "preferredLanguage": "ko",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/preToolUse.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/postToolUse.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(ls*)",
+      "Bash(find*)",
+      "Bash(cat*)",
+      "Bash(echo*)"
+    ],
+    "deny": []
+  },
+  "mcpServers": {
+    "claude-hud": {
+      "command": "claude-hud"
+    },
+    "github": {
+      "command": "github-mcp-server"
+    }
+  }
+}
