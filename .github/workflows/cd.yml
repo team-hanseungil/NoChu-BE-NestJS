@@ -32,18 +32,10 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy app-1 (VM2)
+      - name: Rolling deploy
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.SSH_HOST_APP1 }}
+          host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD_APP1 }}
-          script: bash /opt/nochu/scripts/deploy-app.sh
-
-      - name: Deploy app-2 (VM3)
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST_APP2 }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD_APP2 }}
+          password: ${{ secrets.SSH_PASSWORD }}
           script: bash /opt/nochu/scripts/deploy-app.sh
