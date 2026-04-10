@@ -53,6 +53,21 @@ closes #이슈번호
 
 ---
 
+## Assignees
+
+Always assign the author(s) of the PR.
+
+```bash
+gh pr create --title "..." --body "..." --assignee @me
+```
+
+Multiple authors:
+```bash
+gh pr create --title "..." --body "..." --assignee @me --assignee username
+```
+
+---
+
 ## Merge Strategy
 
 - Always merge via **squash merge**.
