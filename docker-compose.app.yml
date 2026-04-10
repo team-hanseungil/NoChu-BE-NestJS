@@ -1,0 +1,8 @@
+services:
+  app:
+    image: ghcr.io/team-hanseungil/nochu-be-nestjs:latest
+    container_name: nochu-app
+    ports:
+      - "3000:3000"
+    env_file: .env
+    restart: unless-stopped
