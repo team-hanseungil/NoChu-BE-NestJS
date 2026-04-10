@@ -7,17 +7,20 @@ A guide for writing clear and consistent pull request titles and descriptions.
 
 ## PR Title
 
-Use the same format as commit messages:
+Use bracket prefix format:
 
 ```
-type: brief description in English, imperative mood
+[type] brief description in English, imperative mood
 ```
+
+Types: `feat`, `fix`, `update`, `delete`, `hotfix`, `test`, `docs`, `init`
 
 Examples:
 ```
-add: Spotify OAuth login flow
-fix: JWT token not refreshing on expiry
-update: user entity add refreshToken column
+[feat] Spotify OAuth login flow
+[fix] JWT token not refreshing on expiry
+[update] user entity add refreshToken column
+[docs] add API endpoint documentation
 ```
 
 ---
@@ -80,7 +83,7 @@ gh pr create --title "..." --body "..." --assignee @me --assignee username
 
 **Title:**
 ```
-add: Spotify OAuth callback handler
+[feat] Spotify OAuth callback handler
 ```
 
 **Body:**
