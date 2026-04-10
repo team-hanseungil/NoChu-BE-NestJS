@@ -9,7 +9,7 @@ A guide for writing consistent and clear commit messages.
 
 | Type | When to Use |
 |------|-------------|
-| `add:` | New files, new features, new dependencies |
+| `feat:` | New files, new features, new dependencies |
 | `update:` | Modifying or improving existing code |
 | `delete:` | Removing files, functions, or code |
 | `fix:` | Bug fixes |
