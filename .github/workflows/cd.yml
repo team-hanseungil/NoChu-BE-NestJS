@@ -38,7 +38,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT_APP1 }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          password: ${{ secrets.SSH_PASSWORD_APP1 }}
           script: bash /opt/nochu/scripts/deploy-app.sh
 
       - name: Deploy app-2
@@ -47,5 +47,5 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT_APP2 }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          password: ${{ secrets.SSH_PASSWORD_APP2 }}
           script: bash /opt/nochu/scripts/deploy-app.sh
