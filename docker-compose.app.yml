@@ -1,16 +1,8 @@
 services:
-  app-1:
+  app:
     image: ghcr.io/team-hanseungil/nochu-be-nestjs:latest
-    container_name: nochu-app-1
+    container_name: nochu-app
     ports:
-      - "3001:3000"
-    env_file: .env
-    restart: unless-stopped
-
-  app-2:
-    image: ghcr.io/team-hanseungil/nochu-be-nestjs:latest
-    container_name: nochu-app-2
-    ports:
-      - "3002:3000"
+      - "3000:3000"
     env_file: .env
     restart: unless-stopped
