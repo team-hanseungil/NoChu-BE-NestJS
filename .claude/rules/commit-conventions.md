@@ -17,7 +17,7 @@
 
 | Type | Usage |
 |------|-------|
-| `add` | Add new file, feature, or dependency |
+| `feat` | Add new file, feature, or dependency |
 | `update` | Modify existing logic or config |
 | `delete` | Remove file, code, or dependency |
 | `fix` | Fix a bug |
@@ -29,7 +29,7 @@
 ## Commit Message Rules
 
 - Language: English
-- Start with imperative verb (add, update, fix, delete...)
+- Start with imperative verb (feat, update, fix, delete...)
 - Format: `{type}: {imperative verb} {subject}`
 - No period at end
 - Keep subject under 72 characters
@@ -38,8 +38,8 @@
 
 ```
 init
-add: Spotify OAuth callback handler
-add: JWT access and refresh token issuance
+feat: Spotify OAuth callback handler
+feat: JWT access and refresh token issuance
 update: user entity add refreshToken field
 update: ValidationPipe global registration in main.ts
 fix: JWT token refresh logic

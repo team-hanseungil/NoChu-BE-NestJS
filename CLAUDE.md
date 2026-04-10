@@ -51,7 +51,7 @@ Detailed rules are defined in the `.claude/rules/` directory.
 
 | Type | Format |
 |------|--------|
-| Add | `add: ~~` |
+| Feat | `feat: ~~` |
 | Update | `update: ~~` |
 | Delete | `delete: ~~` |
 | Fix | `fix: ~~` |
