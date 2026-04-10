@@ -1,8 +1,8 @@
-# NoChu Backend - CLAUDE.md
+# nochu Backend - CLAUDE.md
 
 ## Project Overview
 
-**MoodTune (NoChu v2)** — Emotion-based music recommendation service
+**nochu v2** — Emotion-based music recommendation service
 
 Users take a selfie or express their emotions in text. The AI server analyzes the emotion and recommends 5 songs tailored to the user's personal preferences.
 
