@@ -2,36 +2,36 @@
 
 ## Project Overview
 
-**MoodTune (NoChu v2)** — 감정 기반 음악 추천 서비스
+**MoodTune (NoChu v2)** — Emotion-based music recommendation service
 
-사용자가 셀카를 찍거나 텍스트로 감정을 표현하면, AI 서버가 감정을 분석하고 개인 취향에 맞는 노래 5곡을 추천한다.
+Users take a selfie or express their emotions in text. The AI server analyzes the emotion and recommends 5 songs tailored to the user's personal preferences.
 
-- v1 레포: https://github.com/team-hanseungil/NoChu-BE
-- 기능 명세서: https://www.notion.so/33e9ac344dbb80d9bac8ddd77b3fb5f9
+- v1 repo: https://github.com/team-hanseungil/NoChu-BE
+- Feature spec: https://www.notion.so/33e9ac344dbb80d9bac8ddd77b3fb5f9
 
-### 서비스 흐름
+### Service Flow
 
 ```
-클라이언트 앱
+Client App
     │
     ▼
-NestJS (인증 · 사용자 · 취향 관리 · AI 서버 프록시)
+NestJS (auth · user · preference management · AI server proxy)
     │
     ▼
-AI 서버 — FastAPI (표정 분류 · 텍스트 감정 분석 · 노래 추천)
+AI Server — FastAPI (facial emotion classification · text emotion analysis · song recommendation)
 ```
 
-### 주요 기능
+### Features
 
-| 기능 | 설명 |
-|------|------|
-| 회원가입 / 로그인 | 이메일 + 비밀번호, JWT (access 15분 / refresh 7일) |
-| 온보딩 | 장르 · 감정별 추천 방향 · 아티스트 · 언어 · BPM 취향 수집 |
-| 표정 감정 분석 | 앱 카메라 → AI 서버 CNN/ViT 모델 → 감정 레이블 + confidence |
-| 텍스트 감정 분석 | 자유 텍스트 → AI 서버 LangChain LLM → 감정 + 강도 |
-| 통합 추천 | 표정(40%) + 텍스트(60%) 가중치 융합 → 노래 5곡 추천 |
-| 추천 히스토리 | 본인 데이터 최근 20건 조회 |
-| 취향 프로필 | 온보딩 이후 언제든 PATCH로 수정 |
+| Feature | Description |
+|---------|-------------|
+| Sign up / Login | Email + password, JWT (access 15m / refresh 7d) |
+| Onboarding | Collect genre · emotion-based direction · artist · language · BPM preferences |
+| Facial emotion analysis | App camera → AI server CNN/ViT model → emotion label + confidence |
+| Text emotion analysis | Free-form text → AI server LangChain LLM → emotion + intensity |
+| Integrated recommendation | Face (40%) + text (60%) weighted fusion → 5 song recommendations |
+| Recommendation history | Fetch own last 20 records |
+| Preference profile | Updatable anytime via PATCH after onboarding |
 
 ---
 
@@ -108,8 +108,8 @@ Detailed rules are defined in the `.claude/rules/` directory.
 
 ## Architecture Notes
 
-- NestJS는 AI 서버의 프록시 역할도 겸함. AI 서버 URL은 환경변수로 분리
-- preference는 JSONB 저장으로 추후 항목 추가 시 마이그레이션 최소화
-- 히스토리 저장은 비동기 처리 (추천 응답 지연 없음)
-- AI 서버 타임아웃 10초 초과 시 503 반환
-- confidence 0.4 미만 표정 감지는 neutral 처리
+- NestJS acts as a proxy to the AI server. AI server URL is environment-variable-driven
+- Preference data stored as JSONB to minimize migrations when adding new fields
+- History is saved asynchronously — no impact on recommendation response time
+- AI server timeout > 10s returns 503
+- Facial confidence < 0.4 is treated as neutral
