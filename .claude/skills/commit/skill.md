@@ -75,6 +75,21 @@ Why bad: non-English message (must be written in English)
 
 ## Step-by-Step Workflow
 
+### Step 0: Branch Validation
+
+**Run this before anything else.**
+
+```bash
+git branch --show-current
+git diff --staged --stat
+```
+
+Compare the branch name against the staged changes:
+
+- **If on `main`**: Stop immediately. Invoke the `/new-branch` skill to create a proper branch first. Do not proceed with the commit.
+- **If the branch name clearly does not match the staged changes** (e.g., branch is `feat/login` but all staged files are CI/CD configs): Invoke the `/new-branch` skill. Do not proceed until the user is on the right branch.
+- **If the branch looks correct**: Proceed to Step 1.
+
 ### Step 1: Review changed files
 ```bash
 git status
@@ -89,9 +104,16 @@ git add -p          # per hunk (recommended)
 
 One commit = one logical change.
 
-### Step 3: Write message and commit
+### Step 3: Create sentinel and commit
+
+Create the sentinel file before committing (required — the hook will block without it):
 ```bash
-git commit -m "add: Spotify OAuth callback handler"
+touch /tmp/.claude_commit_ok
+```
+
+Then commit:
+```bash
+git commit -m "type: description"
 ```
 
 ---

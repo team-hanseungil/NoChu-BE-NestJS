@@ -31,4 +31,15 @@ if echo "$COMMAND" | grep -qE '(mkfs|dd\s+if=)'; then
   exit 1
 fi
 
+if echo "$COMMAND" | grep -qE '^git\s+commit'; then
+  SENTINEL="/tmp/.claude_commit_ok"
+  if [ -f "$SENTINEL" ]; then
+    rm -f "$SENTINEL"
+    exit 0
+  else
+    echo '{"continue": false, "stopReason": "/commit 스킬 없이는 커밋할 수 없습니다. 사용자에게 /commit 스킬 사용을 요청하세요."}'
+    exit 0
+  fi
+fi
+
 exit 0
