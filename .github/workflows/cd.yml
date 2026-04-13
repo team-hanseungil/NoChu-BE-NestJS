@@ -45,9 +45,10 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD_APP1 }}
           script: |
             export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
-            docker compose -f /opt/nochu/docker-compose.app.yml up -d
+            docker-compose -f /opt/nochu/docker-compose.app.yml up -d
 
       - name: Deploy app-2
         uses: appleboy/ssh-action@v1
@@ -58,6 +59,7 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD_APP2 }}
           script: |
             export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
-            docker compose -f /opt/nochu/docker-compose.app.yml up -d
+            docker-compose -f /opt/nochu/docker-compose.app.yml up -d
