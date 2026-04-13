@@ -22,8 +22,4 @@ export class UsersService {
     const user = this.usersRepository.create(data);
     return this.usersRepository.save(user);
   }
-
-  async updateRefreshToken(id: string, refreshToken: string): Promise<void> {
-    await this.usersRepository.update(id, { refreshToken });
-  }
 }

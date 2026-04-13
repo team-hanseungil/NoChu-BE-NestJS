@@ -27,9 +27,6 @@ export class User {
   @Column({ nullable: true })
   profileImageUrl: string;
 
-  @Column({ nullable: true })
-  refreshToken: string;
-
   @CreateDateColumn()
   createdAt: Date;
 
