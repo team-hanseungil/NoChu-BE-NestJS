@@ -20,7 +20,7 @@ For each comment, decide:
 ## Step 3 — Implement Changes
 
 Apply code changes for accepted comments.
-Run `./gradlew ktlintFormat` after edits.
+Run `npm run format` after edits.
 
 ## Step 4 — Commit & Push
 
@@ -40,13 +40,13 @@ git log --oneline -1
 
 For each **반영** comment:
 ```bash
-gh api "repos/<owner>/<repo>/pulls/<pr_number>/comments/<comment_id>/replies" \
+gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pulls/<pr_number>/comments/<comment_id>/replies" \
   -f body="<short_hash> 에서 반영했습니다."
 ```
 
 For each **무시** comment:
 ```bash
-gh api "repos/<owner>/<repo>/pulls/<pr_number>/comments/<comment_id>/replies" \
+gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pulls/<pr_number>/comments/<comment_id>/replies" \
   -f body="<이유> 때문에 반영하지 않았습니다."
 ```
 
