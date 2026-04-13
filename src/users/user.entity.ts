@@ -18,8 +18,8 @@ export class User {
   @Column({ unique: true })
   spotifyId: string;
 
-  @Column({ unique: true })
-  email: string;
+  @Column({ unique: true, nullable: true })
+  email: string | null;
 
   @Column()
   displayName: string;

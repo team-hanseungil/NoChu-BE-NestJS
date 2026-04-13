@@ -42,7 +42,7 @@ export class AuthService {
     if (!user) {
       user = await this.usersService.create({
         spotifyId: profile.id,
-        email: profile.email ?? '',
+        email: profile.email ?? null,
         displayName: profile.display_name,
         profileImageUrl: profile.images?.[0]?.url ?? null,
       });
@@ -51,7 +51,7 @@ export class AuthService {
     return this.issueTokens(user.id, user.email);
   }
 
-  async refresh(token: string): Promise<Pick<TokenResDto, 'accessToken'>> {
+  async refresh(token: string): Promise<TokenResDto> {
     let payload: JwtPayload;
     try {
       payload = this.jwtService.verify<JwtPayload>(token, {
@@ -67,15 +67,14 @@ export class AuthService {
     const isMatch = await bcrypt.compare(token, stored);
     if (!isMatch) throw new UnauthorizedException('Invalid refresh token');
 
-    const accessToken = this.jwtService.sign({ sub: payload.sub, email: payload.email });
-    return { accessToken };
+    return this.issueTokens(payload.sub, payload.email);
   }
 
   async logout(userId: string): Promise<void> {
     await this.redisService.del(`refresh:${userId}`);
   }
 
-  private async issueTokens(userId: string, email: string): Promise<TokenResDto> {
+  private async issueTokens(userId: string, email: string | null): Promise<TokenResDto> {
     const payload: JwtPayload = { sub: userId, email };
 
     const accessToken = this.jwtService.sign(payload);
@@ -95,6 +94,10 @@ export class AuthService {
     const clientSecret = this.configService.get<string>('SPOTIFY_CLIENT_SECRET');
     const callbackUrl = this.configService.get<string>('SPOTIFY_CALLBACK_URL');
 
+    if (!callbackUrl) {
+      throw new Error('SPOTIFY_CALLBACK_URL is not configured');
+    }
+
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
     const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -106,7 +109,7 @@ export class AuthService {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
-        redirect_uri: callbackUrl!,
+        redirect_uri: callbackUrl,
       }),
     });
 

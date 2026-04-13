@@ -28,7 +28,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  refresh(@Body() dto: RefreshTokenReqDto): Promise<Pick<TokenResDto, 'accessToken'>> {
+  refresh(@Body() dto: RefreshTokenReqDto): Promise<TokenResDto> {
     return this.authService.refresh(dto.refreshToken);
   }
 
