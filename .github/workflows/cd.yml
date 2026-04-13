@@ -44,6 +44,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD_APP1 }}
           script: |
+            source ~/.profile || true
+            export PATH=$PATH:/usr/local/bin:/usr/bin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
             docker compose -f /opt/nochu/docker-compose.app.yml up -d
@@ -58,6 +60,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD_APP2 }}
           script: |
+            source ~/.profile || true
+            export PATH=$PATH:/usr/local/bin:/usr/bin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
             docker compose -f /opt/nochu/docker-compose.app.yml up -d
