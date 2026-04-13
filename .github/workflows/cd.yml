@@ -48,8 +48,6 @@ jobs:
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
             docker compose -f /opt/nochu/docker-compose.app.yml up -d
-            CONTAINER=nochu-app
-            timeout 60 bash -c "until [ \"\$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER)\" = \"healthy\" ]; do sleep 2; done"
 
       - name: Deploy app-2
         uses: appleboy/ssh-action@v1
@@ -63,5 +61,3 @@ jobs:
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
             docker compose -f /opt/nochu/docker-compose.app.yml up -d
-            CONTAINER=nochu-app
-            timeout 60 bash -c "until [ \"\$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER)\" = \"healthy\" ]; do sleep 2; done"
