@@ -94,8 +94,8 @@ export class AuthService {
     const clientSecret = this.configService.get<string>('SPOTIFY_CLIENT_SECRET');
     const callbackUrl = this.configService.get<string>('SPOTIFY_CALLBACK_URL');
 
-    if (!callbackUrl) {
-      throw new Error('SPOTIFY_CALLBACK_URL is not configured');
+    if (!clientId || !clientSecret || !callbackUrl) {
+      throw new Error('Spotify configuration (ID, Secret, or Callback URL) is missing');
     }
 
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
