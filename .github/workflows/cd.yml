@@ -36,6 +36,19 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload deploy script to app-1
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT_APP1 }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD_APP1 }}
+          source: scripts/deploy-app.sh
+          target: /opt/nochu/
+          mkdir: true
+
       - name: Deploy app-1
         uses: appleboy/ssh-action@v1
         with:
@@ -44,6 +57,17 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD_APP1 }}
           script: bash /opt/nochu/scripts/deploy-app.sh
+
+      - name: Upload deploy script to app-2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT_APP2 }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD_APP2 }}
+          source: scripts/deploy-app.sh
+          target: /opt/nochu/
+          mkdir: true
 
       - name: Deploy app-2
         uses: appleboy/ssh-action@v1
