@@ -46,16 +46,16 @@ jobs:
           script: |
             export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
             mkdir -p ~/nochu
-            cat > ~/nochu/docker-compose.app.yml << 'COMPOSE'
-services:
-  app:
-    image: ghcr.io/team-hanseungil/nochu-be-nestjs:latest
-    container_name: nochu-app
-    ports:
-      - "3000:3000"
-    env_file: /home/$USER/nochu/.env
-    restart: unless-stopped
-COMPOSE
+            {
+              echo 'services:'
+              echo '  app:'
+              echo '    image: ghcr.io/team-hanseungil/nochu-be-nestjs:latest'
+              echo '    container_name: nochu-app'
+              echo '    ports:'
+              echo '      - "3000:3000"'
+              echo "    env_file: /home/$USER/nochu/.env"
+              echo '    restart: unless-stopped'
+            } > ~/nochu/docker-compose.app.yml
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
@@ -71,16 +71,16 @@ COMPOSE
           script: |
             export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
             mkdir -p ~/nochu
-            cat > ~/nochu/docker-compose.app.yml << 'COMPOSE'
-services:
-  app:
-    image: ghcr.io/team-hanseungil/nochu-be-nestjs:latest
-    container_name: nochu-app
-    ports:
-      - "3000:3000"
-    env_file: /home/$USER/nochu/.env
-    restart: unless-stopped
-COMPOSE
+            {
+              echo 'services:'
+              echo '  app:'
+              echo '    image: ghcr.io/team-hanseungil/nochu-be-nestjs:latest'
+              echo '    container_name: nochu-app'
+              echo '    ports:'
+              echo '      - "3000:3000"'
+              echo "    env_file: /home/$USER/nochu/.env"
+              echo '    restart: unless-stopped'
+            } > ~/nochu/docker-compose.app.yml
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
