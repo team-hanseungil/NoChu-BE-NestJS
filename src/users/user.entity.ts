@@ -18,7 +18,7 @@ export class User {
   @Column({ unique: true })
   spotifyId: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   email: string | null;
 
   @Column()
