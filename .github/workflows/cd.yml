@@ -42,7 +42,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT_APP1 }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD_APP1 }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
             mkdir -p ~/nochu
@@ -69,7 +69,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT_APP2 }}
           username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD_APP2 }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
             mkdir -p ~/nochu
