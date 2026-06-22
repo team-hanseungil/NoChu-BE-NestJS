@@ -60,6 +60,7 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
+            docker ps -aq --filter name=nochu-app | xargs -r docker rm -f
             cd ~/nochu && docker-compose -f docker-compose.app.yml up -d
 
       - name: Deploy app-2
@@ -86,4 +87,5 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
             IMAGE=ghcr.io/team-hanseungil/nochu-be-nestjs:latest
             docker pull $IMAGE
+            docker ps -aq --filter name=nochu-app | xargs -r docker rm -f
             cd ~/nochu && docker-compose -f docker-compose.app.yml up -d
