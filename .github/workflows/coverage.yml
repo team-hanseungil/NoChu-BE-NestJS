@@ -2,17 +2,46 @@ name: Coverage
 
 on:
   pull_request:
-    branches:
-      - main
+    types: [opened, synchronize]
+    branches: ["main"]
+  issue_comment:
+    types: [created]
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != '' &&
+       startsWith(github.event.comment.body, '/coverage'))
     permissions:
       contents: read
       pull-requests: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Get PR metadata
+        id: meta
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.eventName === 'issue_comment') {
+              const pr = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+              });
+              core.setOutput('head_sha', pr.data.head.sha);
+              core.setOutput('base_ref', pr.data.base.ref);
+            } else {
+              core.setOutput('head_sha', context.payload.pull_request.head.sha);
+              core.setOutput('base_ref', context.payload.pull_request.base.ref);
+            }
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.meta.outputs.head_sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -21,9 +50,172 @@ jobs:
 
       - run: npm ci
 
-      - name: Jest coverage report
-        uses: ArtiomTr/jest-coverage-report-action@v2
+      - name: Run tests with coverage
+        run: npx jest --coverage --coverageReporters=json-summary --coverageReporters=text
+
+      - name: Download base coverage
+        uses: dawidd6/action-download-artifact@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          test-script: npm run test:cov
-          annotations: none
+          workflow: ci.yml
+          branch: ${{ steps.meta.outputs.base_ref }}
+          name: coverage-summary
+          path: base-coverage
+        continue-on-error: true
+
+      - name: Get changed files
+        id: changed_files
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            const tsFiles = files.data
+              .filter(f => f.filename.startsWith('src/')
+                && f.filename.endsWith('.ts')
+                && !f.filename.endsWith('.spec.ts')
+                && f.status !== 'removed')
+              .map(f => f.filename);
+            return JSON.stringify(tsFiles);
+
+      - name: Generate coverage report
+        id: coverage
+        env:
+          CHANGED_FILES: ${{ steps.changed_files.outputs.result }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+
+          MIN_COVERAGE = 60
+
+          def load(path):
+              try:
+                  with open(path) as f:
+                      return json.load(f)
+              except Exception:
+                  return None
+
+          def stmt_pct(entry):
+              try:
+                  return round(entry['statements']['pct'], 2)
+              except Exception:
+                  return None
+
+          def find_key(data, rel):
+              for k in data:
+                  if k == 'total':
+                      continue
+                  if k.endswith(rel):
+                      return k
+              return None
+
+          changed_files = json.loads(os.environ.get('CHANGED_FILES', '[]'))
+
+          current = load('coverage/coverage-summary.json')
+          base = load('base-coverage/coverage-summary.json')
+
+          current_overall = stmt_pct(current['total'])
+          base_overall = stmt_pct(base['total']) if base else None
+
+          overall_ok = current_overall >= MIN_COVERAGE
+
+          if base_overall is not None:
+              diff = round(current_overall - base_overall, 2)
+              sign = '+' if diff >= 0 else ''
+              emoji = '📈' if diff >= 0 else '📉'
+              overall_change = f"{emoji} {sign}{diff}%"
+              base_str = f"{base_overall}%"
+          else:
+              overall_change = "📊 기준 없음"
+              base_str = "-"
+
+          lines = [
+              "## 테스트 커버리지",
+              "",
+              "| 항목 | 이전 | 현재 | 변화 | 상태 |",
+              "|------|------|------|------|:----:|",
+              f"| 전체 | {base_str} | {current_overall}% | {overall_change} | {'✅' if overall_ok else '❌'} |",
+          ]
+
+          file_rows = []
+          for filepath in changed_files:
+              cur_key = find_key(current, filepath)
+              if not cur_key:
+                  continue
+              current_cov = stmt_pct(current[cur_key])
+              if current_cov is None:
+                  continue
+
+              if base:
+                  base_key = find_key(base, filepath)
+                  base_cov = stmt_pct(base[base_key]) if base_key else None
+                  if base_cov is not None:
+                      diff = round(current_cov - base_cov, 2)
+                      sign = '+' if diff >= 0 else ''
+                      emoji = '📈' if diff >= 0 else '📉'
+                      change = f"{emoji} {sign}{diff}%"
+                      f_base_str = f"{base_cov}%"
+                  else:
+                      change = "🆕 신규"
+                      f_base_str = "-"
+              else:
+                  change = "📊 기준 없음"
+                  f_base_str = "-"
+
+              file_ok = current_cov >= MIN_COVERAGE
+              file_name = filepath.split('/')[-1]
+              file_rows.append(f"| `{file_name}` | {f_base_str} | {current_cov}% | {change} | {'✅' if file_ok else '❌'} |")
+
+          if file_rows:
+              lines += [
+                  "",
+                  "### 변경된 파일",
+                  "| 파일 | 이전 | 현재 | 변화 | 상태 |",
+                  "|------|------|------|------|:----:|",
+              ] + file_rows
+
+          body = "\n".join(lines)
+
+          with open('coverage-body.md', 'w') as f:
+              f.write(body)
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"overall_ok={'true' if overall_ok else 'false'}\n")
+          PYEOF
+
+      - name: Comment coverage
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- coverage-report -->';
+            const content = fs.readFileSync('coverage-body.md', 'utf8');
+            const body = `${marker}\n${content}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
