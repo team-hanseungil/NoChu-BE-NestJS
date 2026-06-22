@@ -7,41 +7,44 @@ A guide for writing clear and consistent pull request titles and descriptions.
 
 ## PR Title
 
-Use bracket prefix format:
+Korean description only. No type prefix and no bracket prefix — do not prepend `feat:`, `fix:`, `[fix]`, etc.
 
 ```
-[type] brief description in English, imperative mood
+Korean description
 ```
-
-Types: `feat`, `fix`, `update`, `delete`, `hotfix`, `test`, `docs`, `init`
 
 Examples:
 ```
-[feat] Spotify OAuth login flow
-[fix] JWT token not refreshing on expiry
-[update] user entity add refreshToken column
-[docs] add API endpoint documentation
+Spotify OAuth 로그인 플로우 구현
+JWT 토큰 만료 시 갱신 안 되는 문제 수정
+user 엔티티 refreshToken 컬럼 추가
+API 엔드포인트 문서 추가
 ```
 
 ---
 
 ## PR Body Template
 
+Always use the repository PR template at `.github/PULL_REQUEST_TEMPLATE.md`. Do not invent your own sections — read that file and fill in each section in order.
+
+Current template structure:
+
 ```
-## 개요
-[변경 사항 한 줄 요약]
+## #️⃣연관된 이슈
+> ex) #이슈번호, #이슈번호
 
-## 변경 내용
-- [ ] 변경 항목 1
-- [ ] 변경 항목 2
+## 📝작업 내용
+### 스크린샷 (선택)
 
-## 테스트
-- [ ] 단위 테스트 추가/수정
-- [ ] e2e 테스트 통과
-
-## 관련 이슈
-closes #이슈번호
+## 💬리뷰 요구사항(선택)
+> 리뷰어가 특별히 봐주었으면 하는 부분이 있다면 작성해주세요
 ```
+
+- Keep the exact section headers from the file (including emoji).
+- `#️⃣연관된 이슈`: link issues, or write `없음` if none.
+- `📝작업 내용`: bullet the changes by intent. Omit the screenshot subsection if N/A.
+- `💬리뷰 요구사항`: optional — fill only if there is something specific to flag.
+- If the template file changes, follow the file, not this snippet.
 
 ---
 
@@ -50,9 +53,8 @@ closes #이슈번호
 - Focus on **intent**, not mechanics. Explain *why* the code changed, not *that* it changed.
 - Bad: "AuthService에 메서드 추가함"
 - Good: "액세스 토큰 만료 시 자동 갱신되지 않는 문제를 해결하기 위해 refreshToken 로직 추가"
-- Keep the overview to one sentence.
-- Checklist items should describe behavior, not file names.
-- If there is no related issue, omit the `관련 이슈` section entirely.
+- Keep the work summary concise; bullet by behavior, not file names.
+- If there is no related issue, write `없음` under `#️⃣연관된 이슈`.
 
 ---
 
@@ -83,23 +85,22 @@ gh pr create --title "..." --body "..." --assignee @me --assignee username
 
 **Title:**
 ```
-[feat] Spotify OAuth callback handler
+Spotify OAuth 콜백 핸들러 구현
 ```
 
 **Body:**
 ```
-## 개요
-Spotify OAuth 인증 완료 후 사용자 정보를 저장하고 JWT를 발급하는 콜백 처리 추가
+## #️⃣연관된 이슈
 
-## 변경 내용
-- [x] SpotifyStrategy 구현 (Passport OAuth2)
-- [x] /auth/spotify/callback 엔드포인트 추가
-- [x] 신규 유저 자동 생성 로직 추가
-
-## 테스트
-- [x] 단위 테스트 추가/수정
-- [x] e2e 테스트 통과
-
-## 관련 이슈
 closes #42
+
+## 📝작업 내용
+
+- authorization code exchange 로직 구현
+- POST /auth/spotify 엔드포인트 추가
+- 신규 유저 자동 생성 로직 추가
+
+## 💬리뷰 요구사항(선택)
+
+> 신규 유저 생성 시 email이 null일 수 있는데 처리 방식 봐주세요
 ```
