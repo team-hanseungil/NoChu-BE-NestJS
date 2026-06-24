@@ -30,6 +30,7 @@ describe('PreferencesService', () => {
             create: jest.fn(),
             save: jest.fn(),
             update: jest.fn(),
+            existsBy: jest.fn(),
           },
         },
       ],
@@ -50,6 +51,19 @@ describe('PreferencesService', () => {
       await expect(service.getByUserId(userId)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('existsByUserId', () => {
+    it('returns true when a preference exists', async () => {
+      repository.existsBy.mockResolvedValue(true);
+      await expect(service.existsByUserId(userId)).resolves.toBe(true);
+      expect(repository.existsBy).toHaveBeenCalledWith({ userId });
+    });
+
+    it('returns false when no preference exists', async () => {
+      repository.existsBy.mockResolvedValue(false);
+      await expect(service.existsByUserId(userId)).resolves.toBe(false);
     });
   });
 
