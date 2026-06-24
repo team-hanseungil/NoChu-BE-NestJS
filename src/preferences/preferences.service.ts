@@ -15,6 +15,10 @@ export class PreferencesService {
     return this.preferencesRepository.findOne({ where: { userId } });
   }
 
+  existsByUserId(userId: string): Promise<boolean> {
+    return this.preferencesRepository.existsBy({ userId });
+  }
+
   async getByUserId(userId: string): Promise<UserPreference> {
     const preference = await this.findByUserId(userId);
     if (!preference) {
