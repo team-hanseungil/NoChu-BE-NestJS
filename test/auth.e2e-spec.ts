@@ -28,8 +28,30 @@ const SPOTIFY_PROFILE = {
   images: [{ url: 'https://img.example/avatar.png' }],
 };
 
+const VALID_PREFERENCE = {
+  genre: ['pop'],
+  emotionDirection: [{ emotion: 'sad', direction: 'comfort' }],
+  artist: ['IU'],
+  language: ['ko'],
+  bpm: { min: 80, max: 120 },
+};
+
+interface StoredUser {
+  id: string;
+  spotifyId: string;
+  email: string | null;
+  displayName: string;
+  profileImageUrl: string | null;
+}
+
+interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  onboarded: boolean;
+}
+
 class FakeUsersService {
-  private store = new Map<string, any>();
+  private store = new Map<string, StoredUser>();
   private seq = 0;
   createSpy = jest.fn();
 
@@ -39,86 +61,80 @@ class FakeUsersService {
     this.createSpy.mockClear();
   }
 
-  findBySpotifyId(spotifyId: string) {
+  findBySpotifyId(spotifyId: string): Promise<StoredUser | null> {
     const found = [...this.store.values()].find(
       (u) => u.spotifyId === spotifyId,
     );
     return Promise.resolve(found ?? null);
   }
 
-  create(data: any) {
+  create(data: Omit<StoredUser, 'id'>): Promise<StoredUser> {
     this.createSpy(data);
-    const user = { id: `user-${++this.seq}`, ...data };
+    const user: StoredUser = { id: `user-${++this.seq}`, ...data };
     this.store.set(user.id, user);
     return Promise.resolve(user);
   }
 }
 
 class FakeRedisService {
-  store = new Map<string, string>();
+  private store = new Map<string, string>();
 
   reset() {
     this.store.clear();
   }
 
-  set(key: string, value: string) {
+  set(key: string, value: string, _ttl?: number): Promise<void> {
     this.store.set(key, value);
     return Promise.resolve();
   }
 
-  get(key: string) {
+  get(key: string): Promise<string | null> {
     return Promise.resolve(this.store.get(key) ?? null);
   }
 
-  del(key: string) {
+  del(key: string): Promise<void> {
     this.store.delete(key);
     return Promise.resolve();
   }
 }
 
 class FakePreferencesService {
-  private store = new Map<string, any>();
+  private store = new Map<string, Record<string, unknown>>();
 
   reset() {
     this.store.clear();
   }
 
-  findByUserId(userId: string) {
+  findByUserId(userId: string): Promise<Record<string, unknown> | null> {
     return Promise.resolve(this.store.get(userId) ?? null);
   }
 
-  upsert(userId: string, data: any) {
+  upsert(
+    userId: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     const preference = { id: `pref-${userId}`, userId, data };
     this.store.set(userId, preference);
     return Promise.resolve(preference);
   }
 }
 
-const VALID_PREFERENCE = {
-  genre: ['pop'],
-  emotionDirection: [{ emotion: 'sad', direction: 'comfort' }],
-  artist: ['IU'],
-  language: ['ko'],
-  bpm: { min: 80, max: 120 },
-};
+function jsonResponse(ok: boolean, body: unknown): Response {
+  return { ok, json: () => Promise.resolve(body) } as unknown as Response;
+}
 
-function mockSpotifySuccess() {
-  (global.fetch as jest.Mock)
-    .mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          access_token: 'spotify-access-token',
-          token_type: 'Bearer',
-          expires_in: 3600,
-          refresh_token: 'spotify-refresh-token',
-          scope: '',
-        }),
-    })
-    .mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(SPOTIFY_PROFILE),
-    });
+function mockSpotifySuccess(fetchMock: jest.SpyInstance) {
+  fetchMock
+    .mockResolvedValueOnce(
+      jsonResponse(true, {
+        access_token: 'spotify-access-token',
+        token_type: 'Bearer',
+        expires_in: 3600,
+        refresh_token: 'spotify-refresh-token',
+        scope: '',
+      }),
+    )
+    .mockResolvedValueOnce(jsonResponse(true, SPOTIFY_PROFILE));
 }
 
 describe('Auth (e2e)', () => {
@@ -126,6 +142,7 @@ describe('Auth (e2e)', () => {
   let users: FakeUsersService;
   let redis: FakeRedisService;
   let prefs: FakePreferencesService;
+  let fetchMock: jest.SpyInstance;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -174,38 +191,39 @@ describe('Auth (e2e)', () => {
     users.reset();
     redis.reset();
     prefs.reset();
-    global.fetch = jest.fn();
+    fetchMock = jest.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  async function login() {
-    mockSpotifySuccess();
+  async function login(): Promise<TokenResponse> {
+    mockSpotifySuccess(fetchMock);
     const res = await request(app.getHttpServer())
       .post('/auth/spotify')
       .send({ code: 'auth-code' })
       .expect(200);
-    return res.body as {
-      accessToken: string;
-      refreshToken: string;
-      onboarded: boolean;
-    };
+    return res.body as TokenResponse;
   }
 
   describe('POST /auth/spotify', () => {
     it('creates a new user on first login and returns tokens', async () => {
-      mockSpotifySuccess();
+      mockSpotifySuccess(fetchMock);
 
       const res = await request(app.getHttpServer())
         .post('/auth/spotify')
         .send({ code: 'auth-code' })
         .expect(200);
 
-      expect(typeof res.body.accessToken).toBe('string');
-      expect(typeof res.body.refreshToken).toBe('string');
-      expect(res.body.onboarded).toBe(false);
+      const body = res.body as TokenResponse;
+      expect(typeof body.accessToken).toBe('string');
+      expect(typeof body.refreshToken).toBe('string');
+      expect(body.onboarded).toBe(false);
       expect(users.createSpy).toHaveBeenCalledTimes(1);
       expect(users.createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -224,10 +242,7 @@ describe('Auth (e2e)', () => {
     });
 
     it('returns 401 when Spotify code exchange fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        json: () => Promise.resolve({}),
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(false, {}));
 
       await request(app.getHttpServer())
         .post('/auth/spotify')
@@ -252,8 +267,9 @@ describe('Auth (e2e)', () => {
         .send({ refreshToken })
         .expect(200);
 
-      expect(typeof res.body.accessToken).toBe('string');
-      expect(typeof res.body.refreshToken).toBe('string');
+      const body = res.body as TokenResponse;
+      expect(typeof body.accessToken).toBe('string');
+      expect(typeof body.refreshToken).toBe('string');
     });
 
     it('returns 401 for an invalid refresh token', async () => {
@@ -280,9 +296,7 @@ describe('Auth (e2e)', () => {
     });
 
     it('returns 401 without an access token', async () => {
-      await request(app.getHttpServer())
-        .delete('/auth/logout')
-        .expect(401);
+      await request(app.getHttpServer()).delete('/auth/logout').expect(401);
     });
   });
 
