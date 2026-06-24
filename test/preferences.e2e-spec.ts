@@ -203,5 +203,11 @@ describe('Preferences (e2e)', () => {
         .send({ data: { genre: ['rock'] } })
         .expect(404);
     });
+
+    it('returns 400 on an empty body', async () => {
+      await auth(request(app.getHttpServer()).patch('/preferences'))
+        .send({})
+        .expect(400);
+    });
   });
 });

@@ -1,7 +1,6 @@
-import { IsObject, IsOptional } from 'class-validator';
+import { IsObject } from 'class-validator';
 
 export class UpdatePreferenceReqDto {
-  @IsOptional()
   @IsObject()
-  data?: Record<string, unknown>;
+  data: Record<string, unknown>;
 }

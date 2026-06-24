@@ -46,7 +46,7 @@ export class PreferencesController {
     @Body() dto: UpdatePreferenceReqDto,
   ): Promise<PreferenceResDto> {
     const { sub } = req.user as JwtPayload;
-    const preference = await this.preferencesService.patch(sub, dto.data ?? {});
+    const preference = await this.preferencesService.patch(sub, dto.data);
     return PreferenceResDto.from(preference);
   }
 }
