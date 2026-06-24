@@ -3,14 +3,14 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '../common/exceptions/not-found.exception';
 import { PreferencesService } from './preferences.service';
-import { PreferenceData, UserPreference } from './user-preference.entity';
+import { UserPreference } from './user-preference.entity';
 
 describe('PreferencesService', () => {
   let service: PreferencesService;
   let repository: jest.Mocked<Repository<UserPreference>>;
 
   const userId = 'user-1';
-  const data: PreferenceData = {
+  const data: Record<string, unknown> = {
     genre: ['pop'],
     emotionDirection: [{ emotion: 'sad', direction: 'comfort' }],
     artist: ['IU'],
@@ -30,6 +30,7 @@ describe('PreferencesService', () => {
             create: jest.fn(),
             save: jest.fn(),
             update: jest.fn(),
+            existsBy: jest.fn(),
           },
         },
       ],
@@ -50,6 +51,19 @@ describe('PreferencesService', () => {
       await expect(service.getByUserId(userId)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('existsByUserId', () => {
+    it('returns true when a preference exists', async () => {
+      repository.existsBy.mockResolvedValue(true);
+      await expect(service.existsByUserId(userId)).resolves.toBe(true);
+      expect(repository.existsBy).toHaveBeenCalledWith({ userId });
+    });
+
+    it('returns false when no preference exists', async () => {
+      repository.existsBy.mockResolvedValue(false);
+      await expect(service.existsByUserId(userId)).resolves.toBe(false);
     });
   });
 
