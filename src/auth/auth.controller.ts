@@ -9,7 +9,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -24,6 +29,7 @@ export class AuthController {
 
   @Post('spotify')
   @ApiOperation({ summary: 'Spotify 인가 코드로 로그인/회원가입' })
+  @ApiOkResponse({ type: TokenResDto })
   @HttpCode(HttpStatus.OK)
   spotifyLogin(@Body() dto: SpotifyLoginReqDto): Promise<TokenResDto> {
     return this.authService.loginWithCode(dto.code);
@@ -31,6 +37,7 @@ export class AuthController {
 
   @Post('refresh')
   @ApiOperation({ summary: '리프레시 토큰으로 액세스 토큰 재발급' })
+  @ApiOkResponse({ type: TokenResDto })
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshTokenReqDto): Promise<TokenResDto> {
     return this.authService.refresh(dto.refreshToken);
