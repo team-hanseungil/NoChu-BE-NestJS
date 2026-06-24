@@ -9,24 +9,6 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
-export interface EmotionDirection {
-  emotion: string;
-  direction: string;
-}
-
-export interface BpmRange {
-  min: number;
-  max: number;
-}
-
-export interface PreferenceData {
-  genre: string[];
-  emotionDirection: EmotionDirection[];
-  artist: string[];
-  language: string[];
-  bpm: BpmRange;
-}
-
 @Entity('user_preferences')
 export class UserPreference {
   @PrimaryGeneratedColumn('uuid')
@@ -36,7 +18,7 @@ export class UserPreference {
   userId: string;
 
   @Column({ type: 'jsonb' })
-  data: PreferenceData;
+  data: Record<string, unknown>;
 
   @CreateDateColumn()
   createdAt: Date;

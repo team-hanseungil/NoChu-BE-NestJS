@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '../common/exceptions/not-found.exception';
-import { PreferenceData, UserPreference } from './user-preference.entity';
+import { UserPreference } from './user-preference.entity';
 
 @Injectable()
 export class PreferencesService {
@@ -27,7 +27,10 @@ export class PreferencesService {
     return preference;
   }
 
-  async upsert(userId: string, data: PreferenceData): Promise<UserPreference> {
+  async upsert(
+    userId: string,
+    data: Record<string, unknown>,
+  ): Promise<UserPreference> {
     const existing = await this.findByUserId(userId);
     if (existing) {
       existing.data = data;
@@ -39,7 +42,7 @@ export class PreferencesService {
 
   async patch(
     userId: string,
-    partial: Partial<PreferenceData>,
+    partial: Record<string, unknown>,
   ): Promise<UserPreference> {
     const preference = await this.getByUserId(userId);
     preference.data = { ...preference.data, ...partial };

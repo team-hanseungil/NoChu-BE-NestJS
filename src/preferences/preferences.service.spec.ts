@@ -3,14 +3,14 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '../common/exceptions/not-found.exception';
 import { PreferencesService } from './preferences.service';
-import { PreferenceData, UserPreference } from './user-preference.entity';
+import { UserPreference } from './user-preference.entity';
 
 describe('PreferencesService', () => {
   let service: PreferencesService;
   let repository: jest.Mocked<Repository<UserPreference>>;
 
   const userId = 'user-1';
-  const data: PreferenceData = {
+  const data: Record<string, unknown> = {
     genre: ['pop'],
     emotionDirection: [{ emotion: 'sad', direction: 'comfort' }],
     artist: ['IU'],

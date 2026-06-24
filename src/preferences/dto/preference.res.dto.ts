@@ -1,5 +1,5 @@
 import { Expose, plainToInstance } from 'class-transformer';
-import { PreferenceData, UserPreference } from '../user-preference.entity';
+import { UserPreference } from '../user-preference.entity';
 
 export class PreferenceResDto {
   @Expose()
@@ -9,7 +9,7 @@ export class PreferenceResDto {
   userId: string;
 
   @Expose()
-  data: PreferenceData;
+  data: Record<string, unknown>;
 
   @Expose()
   createdAt: Date;

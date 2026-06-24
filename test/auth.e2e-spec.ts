@@ -312,7 +312,7 @@ describe('Auth (e2e)', () => {
       await request(app.getHttpServer())
         .post('/preferences')
         .set('Authorization', `Bearer ${first.accessToken}`)
-        .send(VALID_PREFERENCE)
+        .send({ data: VALID_PREFERENCE })
         .expect(201);
 
       const second = await login();
