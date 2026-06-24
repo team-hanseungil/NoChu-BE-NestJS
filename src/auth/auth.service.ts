@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { UnauthorizedException } from '../common/exceptions/unauthorized.exception';
 import { RedisService } from '../redis/redis.service';
 import { UsersService } from '../users/users.service';
+import { PreferencesService } from '../preferences/preferences.service';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { TokenResDto } from './dto/token.res.dto';
 
@@ -32,6 +33,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly redisService: RedisService,
+    private readonly preferencesService: PreferencesService,
   ) {}
 
   async loginWithCode(code: string): Promise<TokenResDto> {
@@ -74,7 +76,10 @@ export class AuthService {
     await this.redisService.del(`refresh:${userId}`);
   }
 
-  private async issueTokens(userId: string, email: string | null): Promise<TokenResDto> {
+  private async issueTokens(
+    userId: string,
+    email: string | null,
+  ): Promise<TokenResDto> {
     const payload: JwtPayload = { sub: userId, email };
 
     const accessToken = this.jwtService.sign(payload);
@@ -86,19 +91,27 @@ export class AuthService {
     const hashed = await bcrypt.hash(refreshToken, 10);
     await this.redisService.set(`refresh:${userId}`, hashed, REFRESH_TTL);
 
-    return { accessToken, refreshToken };
+    const onboarded = !!(await this.preferencesService.findByUserId(userId));
+
+    return { accessToken, refreshToken, onboarded };
   }
 
   private async exchangeCode(code: string): Promise<SpotifyTokenResponse> {
     const clientId = this.configService.get<string>('SPOTIFY_CLIENT_ID');
-    const clientSecret = this.configService.get<string>('SPOTIFY_CLIENT_SECRET');
+    const clientSecret = this.configService.get<string>(
+      'SPOTIFY_CLIENT_SECRET',
+    );
     const callbackUrl = this.configService.get<string>('SPOTIFY_CALLBACK_URL');
 
     if (!clientId || !clientSecret || !callbackUrl) {
-      throw new Error('Spotify configuration (ID, Secret, or Callback URL) is missing');
+      throw new Error(
+        'Spotify configuration (ID, Secret, or Callback URL) is missing',
+      );
     }
 
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+      'base64',
+    );
 
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -120,7 +133,9 @@ export class AuthService {
     return response.json() as Promise<SpotifyTokenResponse>;
   }
 
-  private async getSpotifyProfile(accessToken: string): Promise<SpotifyProfile> {
+  private async getSpotifyProfile(
+    accessToken: string,
+  ): Promise<SpotifyProfile> {
     const response = await fetch('https://api.spotify.com/v1/me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
