@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserPreference } from './user-preference.entity';
+import { NotFoundException } from '../common/exceptions/not-found.exception';
+import { PreferenceData, UserPreference } from './user-preference.entity';
 
 @Injectable()
 export class PreferencesService {
@@ -14,12 +15,30 @@ export class PreferencesService {
     return this.preferencesRepository.findOne({ where: { userId } });
   }
 
-  create(data: Partial<UserPreference>): Promise<UserPreference> {
-    const preference = this.preferencesRepository.create(data);
+  async getByUserId(userId: string): Promise<UserPreference> {
+    const preference = await this.findByUserId(userId);
+    if (!preference) {
+      throw new NotFoundException('Preference not found');
+    }
+    return preference;
+  }
+
+  async upsert(userId: string, data: PreferenceData): Promise<UserPreference> {
+    const existing = await this.findByUserId(userId);
+    if (existing) {
+      existing.data = data;
+      return this.preferencesRepository.save(existing);
+    }
+    const preference = this.preferencesRepository.create({ userId, data });
     return this.preferencesRepository.save(preference);
   }
 
-  async update(userId: string, data: Partial<UserPreference>): Promise<void> {
-    await this.preferencesRepository.update({ userId }, data);
+  async patch(
+    userId: string,
+    partial: Partial<PreferenceData>,
+  ): Promise<UserPreference> {
+    const preference = await this.getByUserId(userId);
+    preference.data = { ...preference.data, ...partial };
+    return this.preferencesRepository.save(preference);
   }
 }
