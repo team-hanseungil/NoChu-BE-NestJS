@@ -51,8 +51,8 @@ Current template structure:
 ## Writing Rules
 
 - Focus on **intent**, not mechanics. Explain *why* the code changed, not *that* it changed.
-- Bad: "AuthService에 메서드 추가함"
-- Good: "액세스 토큰 만료 시 자동 갱신되지 않는 문제를 해결하기 위해 refreshToken 로직 추가"
+- Bad: "Added a method to AuthService"
+- Good: "Added refreshToken logic to fix the access token not auto-refreshing on expiry"
 - Keep the work summary concise; bullet by behavior, not file names.
 - If there is no related issue, write `없음` under `#️⃣연관된 이슈`.
 

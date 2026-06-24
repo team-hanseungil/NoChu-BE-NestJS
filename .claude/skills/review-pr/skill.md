@@ -14,8 +14,8 @@ gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pulls/<pr_n
 ## Step 2 — Evaluate Each Comment
 
 For each comment, decide:
-- **반영** — valid suggestion, implement it
-- **무시** — not applicable or disagree (explain why in reply)
+- **반영 (accept)** — valid suggestion, implement it
+- **무시 (ignore)** — not applicable or disagree (explain why in reply)
 
 ## Step 3 — Implement Changes
 
@@ -27,7 +27,7 @@ Run `npm run format` after edits.
 Only after the user says to commit:
 ```bash
 git add <files>
-git commit -m "update : 리뷰 반영 - <설명>"
+git commit -m "update: 리뷰 반영 - <설명>"
 git push
 ```
 
@@ -38,13 +38,13 @@ git log --oneline -1
 
 ## Step 5 — Reply to Each Comment
 
-For each **반영** comment:
+For each **반영 (accept)** comment:
 ```bash
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pulls/<pr_number>/comments/<comment_id>/replies" \
   -f body="<short_hash> 에서 반영했습니다."
 ```
 
-For each **무시** comment:
+For each **무시 (ignore)** comment:
 ```bash
 gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pulls/<pr_number>/comments/<comment_id>/replies" \
   -f body="<이유> 때문에 반영하지 않았습니다."
