@@ -16,20 +16,20 @@ A structured analysis process to run before implementing complex features. Preve
 
 ## Step-by-Step Process
 
-### Step 1: 요구사항 파악 (Clarify Requirements)
+### Step 1: Clarify Requirements
 Answer exactly: what needs to be built?
 - What are the inputs and outputs?
 - What are the acceptance criteria?
 - What is explicitly out of scope?
 
-### Step 2: 영향 범위 분석 (Impact Analysis)
+### Step 2: Impact Analysis
 List every file and module that will change:
 - Which controllers, services, repositories are affected?
 - Are new entities or columns needed?
 - Does this require a new module or changes to `AppModule`?
 - Are there shared utilities or interceptors that need updates?
 
-### Step 3: 데이터 흐름 추적 (Trace Data Flow)
+### Step 3: Trace Data Flow
 Follow the request lifecycle end to end:
 ```
 HTTP Request → Controller → Guard → Service → Repository → DB
@@ -38,14 +38,14 @@ HTTP Request → Controller → Guard → Service → Repository → DB
 ```
 Identify exactly where the new logic sits in this chain.
 
-### Step 4: 엣지 케이스 목록 (Edge Cases)
+### Step 4: Edge Cases
 List failure scenarios and boundary conditions:
 - What happens if the resource does not exist?
 - What if the user is not authorized?
 - What if an external service is down?
 - What are the boundary values for numeric/date inputs?
 
-### Step 5: 구현 순서 결정 (Implementation Order)
+### Step 5: Implementation Order
 Order tasks bottom-up by dependency:
 1. DB schema / entity changes first
 2. Repository layer
@@ -54,8 +54,8 @@ Order tasks bottom-up by dependency:
 5. Guards / interceptors
 6. Tests
 
-### Step 6: 체크리스트 작성 (Task Breakdown)
-Break down into atomic tasks using TodoWrite. Each task should be completable independently and verifiable.
+### Step 6: Task Breakdown
+Break down into atomic tasks using TaskCreate. Each task should be completable independently and verifiable. Mark each task in_progress when starting, completed when done using TaskUpdate.
 
 ---
 
