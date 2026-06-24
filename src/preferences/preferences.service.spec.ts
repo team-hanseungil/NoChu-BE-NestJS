@@ -68,25 +68,29 @@ describe('PreferencesService', () => {
     });
 
     it('overwrites data when a preference already exists', async () => {
-      repository.findOne.mockResolvedValue(preference);
+      const existing = { ...preference };
+      repository.findOne.mockResolvedValue(existing);
+      repository.save.mockResolvedValue(existing);
 
-      await service.upsert(userId, data);
+      const result = await service.upsert(userId, data);
 
-      expect(repository.update).toHaveBeenCalledWith({ userId }, { data });
+      expect(repository.save).toHaveBeenCalledWith({ ...existing, data });
       expect(repository.create).not.toHaveBeenCalled();
+      expect(result).toEqual(existing);
     });
   });
 
   describe('patch', () => {
     it('merges partial data into existing preference', async () => {
-      repository.findOne.mockResolvedValue(preference);
+      const existing = { ...preference, data: { ...data } };
+      repository.findOne.mockResolvedValue(existing);
+      const merged = { ...existing, data: { ...data, genre: ['jazz'] } };
+      repository.save.mockResolvedValue(merged);
 
-      await service.patch(userId, { genre: ['jazz'] });
+      const result = await service.patch(userId, { genre: ['jazz'] });
 
-      expect(repository.update).toHaveBeenCalledWith(
-        { userId },
-        { data: { ...data, genre: ['jazz'] } },
-      );
+      expect(repository.save).toHaveBeenCalledWith(merged);
+      expect(result).toEqual(merged);
     });
 
     it('throws NotFoundException when preference is missing', async () => {

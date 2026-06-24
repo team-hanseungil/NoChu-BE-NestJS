@@ -26,8 +26,8 @@ export class PreferencesService {
   async upsert(userId: string, data: PreferenceData): Promise<UserPreference> {
     const existing = await this.findByUserId(userId);
     if (existing) {
-      await this.preferencesRepository.update({ userId }, { data });
-      return this.getByUserId(userId);
+      existing.data = data;
+      return this.preferencesRepository.save(existing);
     }
     const preference = this.preferencesRepository.create({ userId, data });
     return this.preferencesRepository.save(preference);
@@ -38,8 +38,7 @@ export class PreferencesService {
     partial: Partial<PreferenceData>,
   ): Promise<UserPreference> {
     const preference = await this.getByUserId(userId);
-    const merged = { ...preference.data, ...partial };
-    await this.preferencesRepository.update({ userId }, { data: merged });
-    return this.getByUserId(userId);
+    preference.data = { ...preference.data, ...partial };
+    return this.preferencesRepository.save(preference);
   }
 }
