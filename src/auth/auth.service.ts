@@ -91,7 +91,7 @@ export class AuthService {
     const hashed = await bcrypt.hash(refreshToken, 10);
     await this.redisService.set(`refresh:${userId}`, hashed, REFRESH_TTL);
 
-    const onboarded = !!(await this.preferencesService.findByUserId(userId));
+    const onboarded = await this.preferencesService.existsByUserId(userId);
 
     return { accessToken, refreshToken, onboarded };
   }

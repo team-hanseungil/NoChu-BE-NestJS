@@ -109,6 +109,10 @@ class FakePreferencesService {
     return Promise.resolve(this.store.get(userId) ?? null);
   }
 
+  existsByUserId(userId: string): Promise<boolean> {
+    return Promise.resolve(this.store.has(userId));
+  }
+
   upsert(
     userId: string,
     data: Record<string, unknown>,

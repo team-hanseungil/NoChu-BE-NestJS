@@ -24,7 +24,7 @@ describe('AuthService', () => {
   let jwt: { sign: jest.Mock; verify: jest.Mock };
   let usersService: { findBySpotifyId: jest.Mock; create: jest.Mock };
   let redisService: { get: jest.Mock; set: jest.Mock; del: jest.Mock };
-  let preferencesService: { findByUserId: jest.Mock };
+  let preferencesService: { existsByUserId: jest.Mock };
   let configService: { get: jest.Mock };
   let fetchMock: jest.SpyInstance;
 
@@ -47,7 +47,7 @@ describe('AuthService', () => {
     jwt = { sign: jest.fn().mockReturnValue('token'), verify: jest.fn() };
     usersService = { findBySpotifyId: jest.fn(), create: jest.fn() };
     redisService = { get: jest.fn(), set: jest.fn(), del: jest.fn() };
-    preferencesService = { findByUserId: jest.fn() };
+    preferencesService = { existsByUserId: jest.fn() };
     configService = { get: jest.fn((key: string) => CONFIG[key]) };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -76,7 +76,7 @@ describe('AuthService', () => {
       mockSpotifySuccess();
       usersService.findBySpotifyId.mockResolvedValue(null);
       usersService.create.mockResolvedValue(user);
-      preferencesService.findByUserId.mockResolvedValue(null);
+      preferencesService.existsByUserId.mockResolvedValue(false);
 
       const res = await service.loginWithCode('code');
 
@@ -95,7 +95,7 @@ describe('AuthService', () => {
     it('reuses an existing user and returns onboarded=true', async () => {
       mockSpotifySuccess();
       usersService.findBySpotifyId.mockResolvedValue(user);
-      preferencesService.findByUserId.mockResolvedValue({ id: 'pref-1' });
+      preferencesService.existsByUserId.mockResolvedValue(true);
 
       const res = await service.loginWithCode('code');
 
@@ -129,7 +129,7 @@ describe('AuthService', () => {
     it('issues new tokens for a valid refresh token', async () => {
       jwt.verify.mockReturnValue({ sub: 'user-1', email: 'a@b.com' });
       redisService.get.mockResolvedValue('hashed');
-      preferencesService.findByUserId.mockResolvedValue(null);
+      preferencesService.existsByUserId.mockResolvedValue(false);
 
       const res = await service.refresh('valid-token');
 
