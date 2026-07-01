@@ -1,7 +1,11 @@
 import { randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 const EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -46,5 +50,12 @@ export class S3Service {
     );
 
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+  }
+
+  async delete(url: string): Promise<void> {
+    const key = new URL(url).pathname.slice(1);
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
   }
 }

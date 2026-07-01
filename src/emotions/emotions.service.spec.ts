@@ -9,7 +9,7 @@ import { AiService } from '../ai/ai.service';
 describe('EmotionsService', () => {
   let service: EmotionsService;
   let repository: { create: jest.Mock; save: jest.Mock; find: jest.Mock };
-  let s3Service: { upload: jest.Mock };
+  let s3Service: { upload: jest.Mock; delete: jest.Mock };
   let aiService: { analyzeEmotion: jest.Mock };
 
   const userId = 'user-1';
@@ -40,6 +40,7 @@ describe('EmotionsService', () => {
     };
     s3Service = {
       upload: jest.fn().mockResolvedValue('https://bucket.s3/emotions/x.png'),
+      delete: jest.fn().mockResolvedValue(undefined),
     };
     aiService = { analyzeEmotion: jest.fn().mockResolvedValue(aiResult) };
 
@@ -77,6 +78,15 @@ describe('EmotionsService', () => {
   it('throws BadRequestException when no image is provided', async () => {
     await expect(service.analyze(userId, undefined)).rejects.toBeInstanceOf(
       BadRequestException,
+    );
+  });
+
+  it('deletes the uploaded image when AI analysis fails', async () => {
+    aiService.analyzeEmotion.mockRejectedValue(new Error('ai down'));
+
+    await expect(service.analyze(userId, file)).rejects.toThrow('ai down');
+    expect(s3Service.delete).toHaveBeenCalledWith(
+      'https://bucket.s3/emotions/x.png',
     );
   });
 

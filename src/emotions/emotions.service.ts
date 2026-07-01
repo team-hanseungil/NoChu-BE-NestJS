@@ -20,17 +20,27 @@ export class EmotionsService {
       throw new BadRequestException('image is required');
     }
 
-    const result = await this.aiService.analyzeEmotion(
-      image.buffer,
-      image.originalname,
-      image.mimetype,
-    );
+    const [uploaded, analyzed] = await Promise.allSettled([
+      this.s3Service.upload(image.buffer, image.mimetype, 'emotions'),
+      this.aiService.analyzeEmotion(
+        image.buffer,
+        image.originalname,
+        image.mimetype,
+      ),
+    ]);
 
-    const imageUrl = await this.s3Service.upload(
-      image.buffer,
-      image.mimetype,
-      'emotions',
-    );
+    if (analyzed.status === 'rejected') {
+      if (uploaded.status === 'fulfilled') {
+        await this.s3Service.delete(uploaded.value).catch(() => undefined);
+      }
+      throw analyzed.reason;
+    }
+    if (uploaded.status === 'rejected') {
+      throw uploaded.reason;
+    }
+
+    const imageUrl = uploaded.value;
+    const result = analyzed.value;
 
     const emotionValues = result.emotions ? Object.values(result.emotions) : [];
     const confidence = emotionValues.length
