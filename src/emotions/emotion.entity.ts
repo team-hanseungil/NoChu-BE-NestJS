@@ -31,6 +31,6 @@ export class Emotion {
   @Column({ type: 'int' })
   confidence: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

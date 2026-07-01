@@ -90,6 +90,15 @@ describe('EmotionsService', () => {
     );
   });
 
+  it('deletes the uploaded image when saving fails', async () => {
+    repository.save.mockRejectedValue(new Error('db down'));
+
+    await expect(service.analyze(userId, file)).rejects.toThrow('db down');
+    expect(s3Service.delete).toHaveBeenCalledWith(
+      'https://bucket.s3/emotions/x.png',
+    );
+  });
+
   it('computes history stats (total, average, streak)', async () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-07-01T12:00:00Z'));

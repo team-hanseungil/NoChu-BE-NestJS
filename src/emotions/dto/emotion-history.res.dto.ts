@@ -56,7 +56,7 @@ export class EmotionHistoryResDto {
   private static calcStreak(records: Emotion[]): number {
     const dates = [
       ...new Set(records.map((r) => EmotionHistoryResDto.toDate(r.createdAt))),
-    ].sort((a, b) => (a < b ? 1 : -1));
+    ].sort((a, b) => b.localeCompare(a));
 
     if (dates.length === 0) {
       return 0;

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
@@ -29,34 +33,45 @@ export class EmotionsService {
       ),
     ]);
 
-    if (analyzed.status === 'rejected') {
-      if (uploaded.status === 'fulfilled') {
-        await this.s3Service.delete(uploaded.value).catch(() => undefined);
+    let imageUrl: string | undefined;
+    try {
+      if (uploaded.status === 'rejected') {
+        throw uploaded.reason;
       }
-      throw analyzed.reason;
+      imageUrl = uploaded.value;
+
+      if (analyzed.status === 'rejected') {
+        throw analyzed.reason;
+      }
+      const result = analyzed.value;
+
+      if (!result?.emotions || !result.emotion) {
+        throw new ServiceUnavailableException(
+          'AI server returned an invalid response',
+        );
+      }
+
+      const emotionValues = Object.values(result.emotions);
+      const confidence = emotionValues.length
+        ? Math.round(Math.max(...emotionValues) * 100)
+        : 0;
+
+      const emotion = this.emotionsRepository.create({
+        userId,
+        imageUrl,
+        emotions: result.emotions,
+        emotion: result.emotion,
+        comment: result.comment,
+        confidence,
+      });
+
+      return await this.emotionsRepository.save(emotion);
+    } catch (error) {
+      if (imageUrl) {
+        await this.s3Service.delete(imageUrl).catch(() => undefined);
+      }
+      throw error;
     }
-    if (uploaded.status === 'rejected') {
-      throw uploaded.reason;
-    }
-
-    const imageUrl = uploaded.value;
-    const result = analyzed.value;
-
-    const emotionValues = result.emotions ? Object.values(result.emotions) : [];
-    const confidence = emotionValues.length
-      ? Math.round(Math.max(...emotionValues) * 100)
-      : 0;
-
-    const emotion = this.emotionsRepository.create({
-      userId,
-      imageUrl,
-      emotions: result.emotions,
-      emotion: result.emotion,
-      comment: result.comment,
-      confidence,
-    });
-
-    return this.emotionsRepository.save(emotion);
   }
 
   async findHistory(userId: string): Promise<EmotionHistoryResDto> {
