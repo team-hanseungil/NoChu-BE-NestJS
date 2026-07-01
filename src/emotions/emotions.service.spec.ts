@@ -81,6 +81,9 @@ describe('EmotionsService', () => {
   });
 
   it('computes history stats (total, average, streak)', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-07-01T12:00:00Z'));
+
     const day = (s: string) => new Date(`${s}T00:00:00Z`);
     repository.find.mockResolvedValue([
       {
@@ -103,5 +106,7 @@ describe('EmotionsService', () => {
     expect(result.averageConfidence).toBe(70);
     expect(result.streak).toBe(2);
     expect(result.emotions[0].date).toBe('2026-07-01');
+
+    jest.useRealTimers();
   });
 });

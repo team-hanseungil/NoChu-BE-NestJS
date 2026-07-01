@@ -1,6 +1,9 @@
 import {
   Controller,
+  FileTypeValidator,
   Get,
+  MaxFileSizeValidator,
+  ParseFilePipe,
   Post,
   Req,
   UploadedFile,
@@ -34,7 +37,15 @@ export class EmotionsController {
   @UseInterceptors(FileInterceptor('image'))
   async analyze(
     @Req() req: Request,
-    @UploadedFile() image: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: 'image/(jpeg|jpg|png|webp)' }),
+        ],
+      }),
+    )
+    image: Express.Multer.File,
   ): Promise<AnalyzeEmotionResDto> {
     const { sub } = req.user as JwtPayload;
     const emotion = await this.emotionsService.analyze(sub, image);

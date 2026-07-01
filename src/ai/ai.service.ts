@@ -1,4 +1,8 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface EmotionRatios {
@@ -25,6 +29,7 @@ const TIMEOUT_MS = 10_000;
 
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger(AiService.name);
   private readonly baseUrl: string;
 
   constructor(private readonly configService: ConfigService) {
@@ -68,6 +73,10 @@ export class AiService {
       });
 
       if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        this.logger.error(
+          `AI server ${path} responded ${response.status}: ${body}`,
+        );
         throw new ServiceUnavailableException('AI server request failed');
       }
 
@@ -76,6 +85,7 @@ export class AiService {
       if (error instanceof ServiceUnavailableException) {
         throw error;
       }
+      this.logger.error(`AI server ${path} request failed`, error as Error);
       throw new ServiceUnavailableException('AI server is unavailable');
     } finally {
       clearTimeout(timer);

@@ -34,7 +34,9 @@ export class EmotionHistoryResDto {
   }
 
   private static toDate(value: Date): string {
-    return new Date(value).toISOString().slice(0, 10);
+    return new Date(value).toLocaleDateString('sv-SE', {
+      timeZone: 'Asia/Seoul',
+    });
   }
 
   private static calcStreak(records: Emotion[]): number {
@@ -43,6 +45,12 @@ export class EmotionHistoryResDto {
     ].sort((a, b) => (a < b ? 1 : -1));
 
     if (dates.length === 0) {
+      return 0;
+    }
+
+    const todayStr = EmotionHistoryResDto.toDate(new Date());
+    const diffToToday = (Date.parse(todayStr) - Date.parse(dates[0])) / DAY_MS;
+    if (diffToToday > 1) {
       return 0;
     }
 
