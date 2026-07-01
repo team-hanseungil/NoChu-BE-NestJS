@@ -34,9 +34,23 @@ export class EmotionHistoryResDto {
   }
 
   private static toDate(value: Date): string {
-    return new Date(value).toLocaleDateString('sv-SE', {
+    const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Seoul',
-    });
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(value);
+
+    const year = parts.find((p) => p.type === 'year')!.value;
+    const month = parts.find((p) => p.type === 'month')!.value;
+    const day = parts.find((p) => p.type === 'day')!.value;
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private static toMs(dateStr: string): number {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return Date.UTC(year, month - 1, day);
   }
 
   private static calcStreak(records: Emotion[]): number {
@@ -48,15 +62,19 @@ export class EmotionHistoryResDto {
       return 0;
     }
 
-    const todayStr = EmotionHistoryResDto.toDate(new Date());
-    const diffToToday = (Date.parse(todayStr) - Date.parse(dates[0])) / DAY_MS;
-    if (diffToToday > 1) {
+    const todayMs = EmotionHistoryResDto.toMs(
+      EmotionHistoryResDto.toDate(new Date()),
+    );
+    if ((todayMs - EmotionHistoryResDto.toMs(dates[0])) / DAY_MS > 1) {
       return 0;
     }
 
     let streak = 1;
     for (let i = 1; i < dates.length; i++) {
-      const diff = (Date.parse(dates[i - 1]) - Date.parse(dates[i])) / DAY_MS;
+      const diff =
+        (EmotionHistoryResDto.toMs(dates[i - 1]) -
+          EmotionHistoryResDto.toMs(dates[i])) /
+        DAY_MS;
       if (diff === 1) {
         streak++;
       } else {

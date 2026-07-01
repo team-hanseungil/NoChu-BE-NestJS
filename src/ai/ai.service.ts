@@ -33,7 +33,8 @@ export class AiService {
   private readonly baseUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.baseUrl = this.configService.get<string>('AI_SERVER_URL')!;
+    const url = this.configService.get<string>('AI_SERVER_URL')!;
+    this.baseUrl = url.replace(/\/+$/, '');
   }
 
   async analyzeEmotion(
