@@ -2,10 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { EmotionRatios } from '../ai/ai.service';
 
+@Index(['userId', 'createdAt'])
 @Entity('emotions')
 export class Emotion {
   @PrimaryGeneratedColumn('uuid')

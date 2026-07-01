@@ -20,21 +20,22 @@ export class EmotionsService {
       throw new BadRequestException('image is required');
     }
 
-    const imageUrl = await this.s3Service.upload(
-      image.buffer,
-      image.mimetype,
-      'emotions',
-    );
-
     const result = await this.aiService.analyzeEmotion(
       image.buffer,
       image.originalname,
       image.mimetype,
     );
 
-    const confidence = Math.round(
-      Math.max(...Object.values(result.emotions)) * 100,
+    const imageUrl = await this.s3Service.upload(
+      image.buffer,
+      image.mimetype,
+      'emotions',
     );
+
+    const emotionValues = result.emotions ? Object.values(result.emotions) : [];
+    const confidence = emotionValues.length
+      ? Math.round(Math.max(...emotionValues) * 100)
+      : 0;
 
     const emotion = this.emotionsRepository.create({
       userId,
