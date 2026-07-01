@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { SongsModule } from './songs/songs.module';
 import { PlaylistsModule } from './playlists/playlists.module';
 import { PreferencesModule } from './preferences/preferences.module';
+import { EmotionsModule } from './emotions/emotions.module';
 import { AuthModule } from './auth/auth.module';
 import { RedisModule } from './redis/redis.module';
 
@@ -19,6 +20,7 @@ import { RedisModule } from './redis/redis.module';
     SongsModule,
     PlaylistsModule,
     PreferencesModule,
+    EmotionsModule,
     AuthModule,
   ],
   controllers: [AppController],
