@@ -58,10 +58,15 @@ describe('MusicService', () => {
 
   const manager = {
     create: jest.fn((_e: unknown, v: unknown) => v),
-    save: jest.fn((v: unknown) =>
-      Promise.resolve({ id: 'pl-1', ...(v as object) }),
-    ),
-    findOne: jest.fn().mockResolvedValue(null),
+    save: jest.fn((a: unknown, b?: unknown) => {
+      if (Array.isArray(b)) {
+        return Promise.resolve(
+          b.map((v, i) => ({ id: `row-${i}`, ...(v as object) })),
+        );
+      }
+      return Promise.resolve({ id: 'pl-1', ...(a as object) });
+    }),
+    find: jest.fn().mockResolvedValue([]),
     findOneOrFail: jest.fn().mockResolvedValue(savedPlaylist),
   };
 

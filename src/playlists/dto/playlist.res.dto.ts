@@ -8,6 +8,15 @@ export interface PlaylistTrackDto {
   duration: string;
 }
 
+function parseArtists(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [raw];
+  }
+}
+
 function formatDuration(durationMs: number): string {
   const totalSeconds = Math.floor(durationMs / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -29,7 +38,7 @@ export class PlaylistResDto {
     dto.tracks = [...(playlist.playlistSongs ?? [])]
       .sort((a, b) => a.rank - b.rank)
       .map((ps) => ({
-        artists: ps.song.artist ? (JSON.parse(ps.song.artist) as string[]) : [],
+        artists: parseArtists(ps.song.artist),
         title: ps.song.title,
         imageUrl: ps.song.albumImageUrl ?? null,
         spotifyUrl: ps.song.spotifyUrl ?? null,

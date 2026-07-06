@@ -37,6 +37,7 @@ export class SpotifyService {
   private readonly clientSecret: string;
   private accessToken: string | null = null;
   private expiresAt = 0;
+  private tokenPromise: Promise<string> | null = null;
 
   constructor(private readonly configService: ConfigService) {
     this.clientId = this.configService.get<string>('SPOTIFY_CLIENT_ID')!;
@@ -83,7 +84,17 @@ export class SpotifyService {
     if (this.accessToken && Date.now() < this.expiresAt - 60_000) {
       return this.accessToken;
     }
+    if (this.tokenPromise) {
+      return this.tokenPromise;
+    }
 
+    this.tokenPromise = this.requestToken().finally(() => {
+      this.tokenPromise = null;
+    });
+    return this.tokenPromise;
+  }
+
+  private async requestToken(): Promise<string> {
     const credentials = Buffer.from(
       `${this.clientId}:${this.clientSecret}`,
     ).toString('base64');

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { EmotionsService } from '../emotions/emotions.service';
 import { AiService } from '../ai/ai.service';
 import { SpotifyService, SpotifyTrack } from '../spotify/spotify.service';
@@ -61,33 +61,39 @@ export class MusicService {
         }),
       );
 
-      for (const [index, track] of tracks.entries()) {
-        let song = await manager.findOne(Song, {
-          where: { spotifyTrackId: track.id },
-        });
-        if (!song) {
-          song = await manager.save(
-            manager.create(Song, {
-              spotifyTrackId: track.id,
-              title: track.title,
-              artist: JSON.stringify(track.artists),
-              albumName: track.albumName,
-              albumImageUrl: track.albumImageUrl ?? undefined,
-              spotifyUrl: track.spotifyUrl ?? undefined,
-              previewUrl: track.previewUrl ?? undefined,
-              durationMs: track.durationMs,
-            }),
-          );
-        }
+      const trackIds = tracks.map((t) => t.id);
+      const existing = await manager.find(Song, {
+        where: { spotifyTrackId: In(trackIds) },
+      });
+      const songMap = new Map(existing.map((s) => [s.spotifyTrackId, s]));
 
-        await manager.save(
-          manager.create(PlaylistSong, {
-            playlistId: playlist.id,
-            songId: song.id,
-            rank: index,
+      const toInsert = tracks
+        .filter((t) => !songMap.has(t.id))
+        .map((t) =>
+          manager.create(Song, {
+            spotifyTrackId: t.id,
+            title: t.title,
+            artist: JSON.stringify(t.artists),
+            albumName: t.albumName,
+            albumImageUrl: t.albumImageUrl ?? undefined,
+            spotifyUrl: t.spotifyUrl ?? undefined,
+            previewUrl: t.previewUrl ?? undefined,
+            durationMs: t.durationMs,
           }),
         );
+      if (toInsert.length > 0) {
+        const inserted = await manager.save(Song, toInsert);
+        inserted.forEach((s) => songMap.set(s.spotifyTrackId, s));
       }
+
+      const playlistSongs = tracks.map((t, index) =>
+        manager.create(PlaylistSong, {
+          playlistId: playlist.id,
+          songId: songMap.get(t.id)!.id,
+          rank: index,
+        }),
+      );
+      await manager.save(PlaylistSong, playlistSongs);
 
       return manager.findOneOrFail(Playlist, {
         where: { id: playlist.id },

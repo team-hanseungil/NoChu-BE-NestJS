@@ -75,8 +75,11 @@ export class EmotionsService {
   }
 
   findTodayLatest(userId: string): Promise<Emotion | null> {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const kstNow = new Date(Date.now() + KST_OFFSET);
+    kstNow.setUTCHours(0, 0, 0, 0);
+    const start = new Date(kstNow.getTime() - KST_OFFSET);
+
     return this.emotionsRepository.findOne({
       where: { userId, createdAt: MoreThanOrEqual(start) },
       order: { createdAt: 'DESC' },
