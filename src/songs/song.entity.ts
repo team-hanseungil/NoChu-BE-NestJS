@@ -28,6 +28,9 @@ export class Song {
   albumImageUrl: string;
 
   @Column({ nullable: true })
+  spotifyUrl: string;
+
+  @Column({ nullable: true })
   previewUrl: string;
 
   @Column()
