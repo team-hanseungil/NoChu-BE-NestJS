@@ -4,7 +4,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
 import { S3Service } from '../storage/s3.service';
 import { Emotion } from './emotion.entity';
@@ -72,6 +72,15 @@ export class EmotionsService {
       }
       throw error;
     }
+  }
+
+  findTodayLatest(userId: string): Promise<Emotion | null> {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return this.emotionsRepository.findOne({
+      where: { userId, createdAt: MoreThanOrEqual(start) },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findHistory(userId: string): Promise<EmotionHistoryResDto> {

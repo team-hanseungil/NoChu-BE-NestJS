@@ -17,6 +17,12 @@ export class Playlist {
   @Column()
   userId: string;
 
+  @Column()
+  title: string;
+
+  @Column({ nullable: true })
+  imageUrl: string;
+
   @Column({ nullable: true })
   emotionLabel: string;
 
@@ -35,6 +41,8 @@ export class Playlist {
   @ManyToOne(() => User, (user) => user.playlists, { onDelete: 'CASCADE' })
   user: User;
 
-  @OneToMany(() => PlaylistSong, (playlistSong) => playlistSong.playlist, { cascade: true })
+  @OneToMany(() => PlaylistSong, (playlistSong) => playlistSong.playlist, {
+    cascade: true,
+  })
   playlistSongs: PlaylistSong[];
 }
