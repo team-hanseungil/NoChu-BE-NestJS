@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -26,7 +33,7 @@ export class PlaylistsController {
   @ApiOperation({ summary: '플레이리스트 상세 조회' })
   async findOne(
     @Req() req: Request,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<PlaylistResDto> {
     const { sub } = req.user as JwtPayload;
     const playlist = await this.playlistsService.findOneByUserId(sub, id);
