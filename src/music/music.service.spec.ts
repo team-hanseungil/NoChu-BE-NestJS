@@ -252,4 +252,19 @@ describe('MusicService', () => {
       expect.any(Number),
     );
   });
+
+  it('falls back to AI when the cache read fails', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'fresh',
+      title: 'Fresh Mix',
+    });
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    redisService.get.mockRejectedValue(new Error('redis down'));
+
+    const result = await service.recommend(userId);
+
+    expect(aiService.extractKeywords).toHaveBeenCalled();
+    expect(result.id).toBe('pl-1');
+  });
 });

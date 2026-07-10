@@ -63,19 +63,59 @@ export class MusicService {
     emotions: EmotionRatios,
     comment: string | null,
   ): Promise<AiKeywordResult> {
-    const hash = createHash('sha256')
-      .update(JSON.stringify({ emotions, comment }))
-      .digest('hex');
-    const key = `music:kw:${hash}`;
+    const key = this.keywordCacheKey(emotions, comment);
 
-    const cached = await this.redisService.get(key);
+    const cached = await this.getCachedKeywords(key);
     if (cached) {
-      return JSON.parse(cached) as AiKeywordResult;
+      return cached;
     }
 
     const result = await this.aiService.extractKeywords(emotions, comment);
-    await this.redisService.set(key, JSON.stringify(result), KEYWORD_CACHE_TTL);
+    await this.setCachedKeywords(key, result);
     return result;
+  }
+
+  private keywordCacheKey(
+    emotions: EmotionRatios,
+    comment: string | null,
+  ): string {
+    const sorted = Object.keys(emotions)
+      .sort()
+      .reduce<Record<string, number>>((acc, k) => {
+        acc[k] = emotions[k as keyof EmotionRatios];
+        return acc;
+      }, {});
+    const hash = createHash('sha256')
+      .update(JSON.stringify({ emotions: sorted, comment }))
+      .digest('hex');
+    return `music:kw:${hash}`;
+  }
+
+  private async getCachedKeywords(
+    key: string,
+  ): Promise<AiKeywordResult | null> {
+    try {
+      const cached = await this.redisService.get(key);
+      return cached ? (JSON.parse(cached) as AiKeywordResult) : null;
+    } catch (error) {
+      this.logger.warn('Keyword cache read failed', error as Error);
+      return null;
+    }
+  }
+
+  private async setCachedKeywords(
+    key: string,
+    result: AiKeywordResult,
+  ): Promise<void> {
+    try {
+      await this.redisService.set(
+        key,
+        JSON.stringify(result),
+        KEYWORD_CACHE_TTL,
+      );
+    } catch (error) {
+      this.logger.warn('Keyword cache write failed', error as Error);
+    }
   }
 
   private async exportToSpotify(

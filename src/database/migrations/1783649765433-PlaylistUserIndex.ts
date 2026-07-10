@@ -10,8 +10,6 @@ export class PlaylistUserIndex1783649765433 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_c298a5f2f65603b1a8519e3e26"`,
-    );
+    await queryRunner.query(`DROP INDEX "IDX_c298a5f2f65603b1a8519e3e26"`);
   }
 }
