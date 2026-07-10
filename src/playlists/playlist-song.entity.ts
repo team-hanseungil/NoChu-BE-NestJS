@@ -16,7 +16,9 @@ export class PlaylistSong {
   @Column()
   rank: number;
 
-  @ManyToOne(() => Playlist, (playlist) => playlist.playlistSongs, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Playlist, (playlist) => playlist.playlistSongs, {
+    onDelete: 'CASCADE',
+  })
   playlist: Playlist;
 
   @ManyToOne(() => Song, (song) => song.playlistSongs)

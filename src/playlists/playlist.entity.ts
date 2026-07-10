@@ -5,6 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  RelationCount,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { PlaylistSong } from './playlist-song.entity';
@@ -45,4 +46,7 @@ export class Playlist {
     cascade: true,
   })
   playlistSongs: PlaylistSong[];
+
+  @RelationCount((playlist: Playlist) => playlist.playlistSongs)
+  playlistSongsCount: number;
 }
