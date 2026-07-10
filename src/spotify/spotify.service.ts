@@ -143,12 +143,12 @@ export class SpotifyService {
       body: JSON.stringify({ name, public: false }),
     });
 
-    if (trackIds.length > 0) {
+    const uris = trackIds.map((id) => `spotify:track:${id}`);
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < uris.length; i += CHUNK_SIZE) {
       await this.userFetch(token, `/v1/playlists/${created.id}/tracks`, {
         method: 'POST',
-        body: JSON.stringify({
-          uris: trackIds.map((id) => `spotify:track:${id}`),
-        }),
+        body: JSON.stringify({ uris: uris.slice(i, i + CHUNK_SIZE) }),
       });
     }
 
@@ -173,8 +173,9 @@ export class SpotifyService {
     });
 
     if (!response.ok) {
+      const body = await response.text().catch(() => '');
       this.logger.error(
-        `Spotify user token refresh failed: ${response.status}`,
+        `Spotify user token refresh failed: ${response.status} ${body}`,
       );
       throw new ServiceUnavailableException('Spotify token refresh failed');
     }
@@ -197,7 +198,8 @@ export class SpotifyService {
     });
 
     if (!response.ok) {
-      this.logger.error(`Spotify ${path} failed: ${response.status}`);
+      const body = await response.text().catch(() => '');
+      this.logger.error(`Spotify ${path} failed: ${response.status} ${body}`);
       throw new ServiceUnavailableException('Spotify API request failed');
     }
 
