@@ -20,6 +20,9 @@ describe('SpotifyService', () => {
   let service: SpotifyService;
   let fetchMock: jest.SpyInstance;
 
+  const fetchUrls = (): string[] =>
+    (fetchMock.mock.calls as [string][]).map(([u]) => u);
+
   beforeEach(() => {
     const configService = {
       get: jest.fn((key: string) => CONFIG[key]),
@@ -77,8 +80,8 @@ describe('SpotifyService', () => {
       await service.searchTracks('a');
       await service.searchTracks('b');
 
-      const tokenCalls = fetchMock.mock.calls.filter((c) =>
-        String(c[0]).includes('accounts.spotify.com'),
+      const tokenCalls = fetchUrls().filter((u) =>
+        u.includes('accounts.spotify.com'),
       );
       expect(tokenCalls).toHaveLength(1);
     });
@@ -93,6 +96,34 @@ describe('SpotifyService', () => {
       await expect(service.searchTracks('x')).rejects.toBeInstanceOf(
         ServiceUnavailableException,
       );
+    });
+
+    it('handles missing album images and external_urls with fallbacks', async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          jsonResponse(true, { access_token: 'tok', expires_in: 3600 }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse(true, {
+            tracks: {
+              items: [
+                {
+                  id: 't9',
+                  name: 'Bare',
+                  artists: [{ name: 'A' }],
+                  album: { name: 'Album' },
+                },
+              ],
+            },
+          }),
+        );
+
+      const tracks = await service.searchTracks('x');
+
+      expect(tracks[0].albumImageUrl).toBeNull();
+      expect(tracks[0].spotifyUrl).toBe('https://open.spotify.com/track/t9');
+      expect(tracks[0].previewUrl).toBeNull();
+      expect(tracks[0].durationMs).toBe(0);
     });
   });
 
@@ -118,8 +149,7 @@ describe('SpotifyService', () => {
       );
 
       expect(result).toEqual({ id: 'pl-1', url: 'http://playlist' });
-      const createCall = fetchMock.mock.calls[1];
-      expect(String(createCall[0])).toContain('/v1/users/sp-user/playlists');
+      expect(fetchUrls()[1]).toContain('/v1/users/sp-user/playlists');
     });
 
     it('chunks track additions into batches of 100', async () => {
@@ -133,9 +163,7 @@ describe('SpotifyService', () => {
       const ids = Array.from({ length: 150 }, (_, i) => `t${i}`);
       await service.createPlaylist('r', 'u', 'name', ids);
 
-      const trackCalls = fetchMock.mock.calls.filter((c) =>
-        String(c[0]).includes('/tracks'),
-      );
+      const trackCalls = fetchUrls().filter((u) => u.includes('/tracks'));
       expect(trackCalls).toHaveLength(2);
     });
 
@@ -144,6 +172,20 @@ describe('SpotifyService', () => {
       await expect(
         service.createPlaylist('r', 'u', 'n', ['t1']),
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    });
+
+    it('does not call the tracks endpoint when there are no tracks', async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          jsonResponse(true, { access_token: 'user-token' }),
+        )
+        .mockResolvedValueOnce(jsonResponse(true, { id: 'pl-1' }));
+
+      const result = await service.createPlaylist('r', 'u', 'name', []);
+
+      expect(result.id).toBe('pl-1');
+      const trackCalls = fetchUrls().filter((u) => u.includes('/tracks'));
+      expect(trackCalls).toHaveLength(0);
     });
   });
 });

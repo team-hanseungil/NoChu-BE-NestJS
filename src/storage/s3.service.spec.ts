@@ -2,6 +2,19 @@ import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { S3Service } from './s3.service';
 
+const send = jest.fn();
+
+jest.mock('@aws-sdk/client-s3', () => {
+  const actual =
+    jest.requireActual<typeof import('@aws-sdk/client-s3')>(
+      '@aws-sdk/client-s3',
+    );
+  return {
+    ...actual,
+    S3Client: jest.fn().mockImplementation(() => ({ send })),
+  };
+});
+
 const CONFIG: Record<string, string> = {
   AWS_STATIC: 'ap-northeast-2',
   AWS_BUCKET: 'nochu-bucket',
@@ -11,15 +24,14 @@ const CONFIG: Record<string, string> = {
 
 describe('S3Service', () => {
   let service: S3Service;
-  let send: jest.Mock;
 
   beforeEach(() => {
+    send.mockReset();
+    send.mockResolvedValue({});
     const configService = {
       get: jest.fn((key: string) => CONFIG[key]),
     } as unknown as ConfigService;
     service = new S3Service(configService);
-    send = jest.fn().mockResolvedValue({});
-    (service as unknown as { client: { send: jest.Mock } }).client = { send };
   });
 
   describe('upload', () => {
@@ -31,6 +43,7 @@ describe('S3Service', () => {
       );
 
       expect(send).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const command = send.mock.calls[0][0] as PutObjectCommand;
       expect(command).toBeInstanceOf(PutObjectCommand);
       expect(command.input.Bucket).toBe('nochu-bucket');
@@ -53,6 +66,7 @@ describe('S3Service', () => {
         'https://nochu-bucket.s3.ap-northeast-2.amazonaws.com/emotions/abc.png',
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const command = send.mock.calls[0][0] as DeleteObjectCommand;
       expect(command).toBeInstanceOf(DeleteObjectCommand);
       expect(command.input.Bucket).toBe('nochu-bucket');
