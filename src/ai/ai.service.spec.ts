@@ -23,10 +23,10 @@ describe('AiService', () => {
   let fetchMock: jest.SpyInstance;
 
   beforeEach(() => {
-    const configService = {
+    const configService: Partial<ConfigService> = {
       get: jest.fn(() => 'http://ai-server:8000/'),
-    } as unknown as ConfigService;
-    service = new AiService(configService);
+    };
+    service = new AiService(configService as ConfigService);
     fetchMock = jest.spyOn(global, 'fetch');
   });
 

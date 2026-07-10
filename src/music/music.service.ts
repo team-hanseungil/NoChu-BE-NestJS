@@ -34,7 +34,7 @@ export class MusicService {
     }
 
     const preference = await this.preferencesService.findByUserId(userId);
-    const comment = preference ? JSON.stringify(preference.data) : null;
+    const comment = preference?.data ? JSON.stringify(preference.data) : null;
 
     const { keywords, title } = await this.aiService.extractKeywords(
       emotion.emotions,
