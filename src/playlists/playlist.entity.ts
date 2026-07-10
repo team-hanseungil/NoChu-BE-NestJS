@@ -24,6 +24,12 @@ export class Playlist {
   @Column({ nullable: true })
   imageUrl: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  spotifyPlaylistId: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  spotifyPlaylistUrl: string | null;
+
   @Column({ nullable: true })
   emotionLabel: string;
 

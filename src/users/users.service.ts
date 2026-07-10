@@ -22,4 +22,13 @@ export class UsersService {
     const user = this.usersRepository.create(data);
     return this.usersRepository.save(user);
   }
+
+  async updateSpotifyRefreshToken(
+    userId: string,
+    encryptedToken: string,
+  ): Promise<void> {
+    await this.usersRepository.update(userId, {
+      spotifyRefreshToken: encryptedToken,
+    });
+  }
 }

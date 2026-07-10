@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { RedisService } from '../redis/redis.service';
 import { PreferencesService } from '../preferences/preferences.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 import { UnauthorizedException } from '../common/exceptions/unauthorized.exception';
 
 function jsonResponse(ok: boolean, body: unknown): Response {
@@ -22,9 +23,14 @@ const CONFIG: Record<string, string> = {
 describe('AuthService', () => {
   let service: AuthService;
   let jwt: { sign: jest.Mock; verify: jest.Mock };
-  let usersService: { findBySpotifyId: jest.Mock; create: jest.Mock };
+  let usersService: {
+    findBySpotifyId: jest.Mock;
+    create: jest.Mock;
+    updateSpotifyRefreshToken: jest.Mock;
+  };
   let redisService: { get: jest.Mock; set: jest.Mock; del: jest.Mock };
   let preferencesService: { existsByUserId: jest.Mock };
+  let cryptoService: { encrypt: jest.Mock; decrypt: jest.Mock };
   let configService: { get: jest.Mock };
   let fetchMock: jest.SpyInstance;
 
@@ -32,7 +38,12 @@ describe('AuthService', () => {
 
   function mockSpotifySuccess() {
     fetchMock
-      .mockResolvedValueOnce(jsonResponse(true, { access_token: 'sp-access' }))
+      .mockResolvedValueOnce(
+        jsonResponse(true, {
+          access_token: 'sp-access',
+          refresh_token: 'sp-refresh',
+        }),
+      )
       .mockResolvedValueOnce(
         jsonResponse(true, {
           id: 'sp-1',
@@ -45,9 +56,17 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     jwt = { sign: jest.fn().mockReturnValue('token'), verify: jest.fn() };
-    usersService = { findBySpotifyId: jest.fn(), create: jest.fn() };
+    usersService = {
+      findBySpotifyId: jest.fn(),
+      create: jest.fn(),
+      updateSpotifyRefreshToken: jest.fn(),
+    };
     redisService = { get: jest.fn(), set: jest.fn(), del: jest.fn() };
     preferencesService = { existsByUserId: jest.fn() };
+    cryptoService = {
+      encrypt: jest.fn((v: string) => `enc(${v})`),
+      decrypt: jest.fn(),
+    };
     configService = { get: jest.fn((key: string) => CONFIG[key]) };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -58,6 +77,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: usersService },
         { provide: RedisService, useValue: redisService },
         { provide: PreferencesService, useValue: preferencesService },
+        { provide: CryptoService, useValue: cryptoService },
       ],
     }).compile();
 
@@ -87,6 +107,11 @@ describe('AuthService', () => {
         'refresh:user-1',
         'hashed',
         expect.any(Number),
+      );
+      expect(cryptoService.encrypt).toHaveBeenCalledWith('sp-refresh');
+      expect(usersService.updateSpotifyRefreshToken).toHaveBeenCalledWith(
+        'user-1',
+        'enc(sp-refresh)',
       );
       expect(res.accessToken).toBe('token');
       expect(res.onboarded).toBe(false);

@@ -27,6 +27,9 @@ export class User {
   @Column({ nullable: true })
   profileImageUrl: string;
 
+  @Column({ type: 'text', nullable: true })
+  spotifyRefreshToken: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -36,6 +39,8 @@ export class User {
   @OneToMany(() => Playlist, (playlist) => playlist.user, { cascade: true })
   playlists: Playlist[];
 
-  @OneToOne(() => UserPreference, (preference) => preference.user, { cascade: true })
+  @OneToOne(() => UserPreference, (preference) => preference.user, {
+    cascade: true,
+  })
   preference: UserPreference;
 }

@@ -28,6 +28,7 @@ export class PlaylistResDto {
   id: string;
   title: string;
   imageUrl: string | null;
+  spotifyPlaylistUrl: string | null;
   tracks: PlaylistTrackDto[];
 
   static from(playlist: Playlist): PlaylistResDto {
@@ -35,6 +36,7 @@ export class PlaylistResDto {
     dto.id = playlist.id;
     dto.title = playlist.title;
     dto.imageUrl = playlist.imageUrl ?? null;
+    dto.spotifyPlaylistUrl = playlist.spotifyPlaylistUrl ?? null;
     dto.tracks = [...(playlist.playlistSongs ?? [])]
       .sort((a, b) => a.rank - b.rank)
       .map((ps) => ({

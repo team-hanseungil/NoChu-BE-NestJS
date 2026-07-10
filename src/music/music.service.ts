@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In } from 'typeorm';
 import { EmotionsService } from '../emotions/emotions.service';
 import { AiService } from '../ai/ai.service';
 import { SpotifyService, SpotifyTrack } from '../spotify/spotify.service';
+import { UsersService } from '../users/users.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 import { Playlist } from '../playlists/playlist.entity';
 import { PlaylistSong } from '../playlists/playlist-song.entity';
 import { Song } from '../songs/song.entity';
@@ -11,12 +13,16 @@ import { PlaylistResDto } from '../playlists/dto/playlist.res.dto';
 
 @Injectable()
 export class MusicService {
+  private readonly logger = new Logger(MusicService.name);
+
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly emotionsService: EmotionsService,
     private readonly aiService: AiService,
     private readonly spotifyService: SpotifyService,
+    private readonly usersService: UsersService,
+    private readonly cryptoService: CryptoService,
   ) {}
 
   async recommend(
@@ -42,7 +48,42 @@ export class MusicService {
     }
 
     const playlist = await this.save(userId, emotion.emotion, title, tracks);
+    await this.exportToSpotify(userId, playlist, title, tracks);
     return PlaylistResDto.from(playlist);
+  }
+
+  private async exportToSpotify(
+    userId: string,
+    playlist: Playlist,
+    title: string,
+    tracks: SpotifyTrack[],
+  ): Promise<void> {
+    try {
+      const user = await this.usersService.findOne(userId);
+      if (!user?.spotifyRefreshToken) {
+        return;
+      }
+
+      const refreshToken = this.cryptoService.decrypt(user.spotifyRefreshToken);
+      const created = await this.spotifyService.createPlaylist(
+        refreshToken,
+        user.spotifyId,
+        title,
+        tracks.map((t) => t.id),
+      );
+
+      playlist.spotifyPlaylistId = created.id;
+      playlist.spotifyPlaylistUrl = created.url ?? null;
+      await this.dataSource.getRepository(Playlist).update(playlist.id, {
+        spotifyPlaylistId: created.id,
+        spotifyPlaylistUrl: created.url,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Spotify playlist export failed for user ${userId}`,
+        error as Error,
+      );
+    }
   }
 
   private save(
