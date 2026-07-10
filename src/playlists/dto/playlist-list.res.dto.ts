@@ -19,7 +19,7 @@ export class PlaylistListResDto {
       title: p.title,
       emotion: p.emotionLabel ?? null,
       imageUrl: p.imageUrl ?? null,
-      count: p.playlistSongs?.length ?? 0,
+      count: p.playlistSongsCount ?? 0,
       createdAt: p.createdAt,
     }));
     return dto;

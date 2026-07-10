@@ -16,7 +16,6 @@ export class PlaylistsService {
       where: { userId },
       order: { createdAt: 'DESC' },
       take: 20,
-      relations: ['playlistSongs', 'playlistSongs.song'],
     });
   }
 
@@ -24,6 +23,7 @@ export class PlaylistsService {
     const playlist = await this.playlistsRepository.findOne({
       where: { id, userId },
       relations: ['playlistSongs', 'playlistSongs.song'],
+      order: { playlistSongs: { rank: 'ASC' } },
     });
     if (!playlist) {
       throw new NotFoundException('Playlist not found');
