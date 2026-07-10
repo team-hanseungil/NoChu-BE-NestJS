@@ -9,8 +9,6 @@ export interface EmotionRatios {
   happy: number;
   surprise: number;
   anger: number;
-  anxiety: number;
-  hurt: number;
   sad: number;
 }
 
