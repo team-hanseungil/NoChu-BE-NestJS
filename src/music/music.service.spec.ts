@@ -227,11 +227,14 @@ describe('MusicService', () => {
       JSON.stringify({ keywords: 'cached', title: 'Cached Mix' }),
     );
 
-    const result = await service.recommend(userId);
+    await service.recommend(userId);
 
     expect(aiService.extractKeywords).not.toHaveBeenCalled();
     expect(spotifyService.searchTracks).toHaveBeenCalledWith('cached');
-    expect(result.title).toBe('Happy Mix');
+    expect(manager.create).toHaveBeenCalledWith(
+      Playlist,
+      expect.objectContaining({ title: 'Cached Mix' }),
+    );
   });
 
   it('caches keyword result on a cache miss', async () => {

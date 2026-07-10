@@ -79,10 +79,11 @@ export class MusicService {
     emotions: EmotionRatios,
     comment: string | null,
   ): string {
-    const sorted = Object.keys(emotions)
+    const safeEmotions = emotions ?? ({} as EmotionRatios);
+    const sorted = Object.keys(safeEmotions)
       .sort()
       .reduce<Record<string, number>>((acc, k) => {
-        acc[k] = emotions[k as keyof EmotionRatios];
+        acc[k] = safeEmotions[k as keyof EmotionRatios];
         return acc;
       }, {});
     const hash = createHash('sha256')
