@@ -6,6 +6,7 @@ import { EmotionsService } from '../emotions/emotions.service';
 import { AiService } from '../ai/ai.service';
 import { SpotifyService } from '../spotify/spotify.service';
 import { UsersService } from '../users/users.service';
+import { PreferencesService } from '../preferences/preferences.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { Emotion } from '../emotions/emotion.entity';
 import { Playlist } from '../playlists/playlist.entity';
@@ -16,19 +17,13 @@ describe('MusicService', () => {
   let aiService: { extractKeywords: jest.Mock };
   let spotifyService: { searchTracks: jest.Mock; createPlaylist: jest.Mock };
   let usersService: { findOne: jest.Mock };
+  let preferencesService: { findByUserId: jest.Mock };
   let cryptoService: { decrypt: jest.Mock };
 
   const userId = 'user-1';
   const emotion = {
     emotion: 'happy',
-    emotions: {
-      happy: 0.8,
-      surprise: 0,
-      anger: 0,
-      anxiety: 0,
-      hurt: 0,
-      sad: 0.2,
-    },
+    emotions: { happy: 0.8, surprise: 0, anger: 0, sad: 0.2 },
   } as Emotion;
 
   const track = {
@@ -81,6 +76,7 @@ describe('MusicService', () => {
     aiService = { extractKeywords: jest.fn() };
     spotifyService = { searchTracks: jest.fn(), createPlaylist: jest.fn() };
     usersService = { findOne: jest.fn().mockResolvedValue(null) };
+    preferencesService = { findByUserId: jest.fn().mockResolvedValue(null) };
     cryptoService = { decrypt: jest.fn((v: string) => `dec(${v})`) };
     playlistRepo.update.mockClear();
 
@@ -97,6 +93,7 @@ describe('MusicService', () => {
         { provide: AiService, useValue: aiService },
         { provide: SpotifyService, useValue: spotifyService },
         { provide: UsersService, useValue: usersService },
+        { provide: PreferencesService, useValue: preferencesService },
         { provide: CryptoService, useValue: cryptoService },
       ],
     }).compile();
@@ -111,12 +108,15 @@ describe('MusicService', () => {
       title: 'Happy Mix',
     });
     spotifyService.searchTracks.mockResolvedValue([track]);
+    preferencesService.findByUserId.mockResolvedValue({
+      data: { genre: ['pop'] },
+    });
 
-    const result = await service.recommend(userId, 'good day');
+    const result = await service.recommend(userId);
 
     expect(aiService.extractKeywords).toHaveBeenCalledWith(
       emotion.emotions,
-      'good day',
+      JSON.stringify({ genre: ['pop'] }),
     );
     expect(result.id).toBe('pl-1');
     expect(result.title).toBe('Happy Mix');
@@ -124,9 +124,23 @@ describe('MusicService', () => {
     expect(result.tracks[0].duration).toBe('3:20');
   });
 
+  it('sends null comment when the user has no preferences', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({ keywords: 'k', title: 'T' });
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    preferencesService.findByUserId.mockResolvedValue(null);
+
+    await service.recommend(userId);
+
+    expect(aiService.extractKeywords).toHaveBeenCalledWith(
+      emotion.emotions,
+      null,
+    );
+  });
+
   it('throws NotFoundException when no emotion today', async () => {
     emotionsService.findTodayLatest.mockResolvedValue(null);
-    await expect(service.recommend(userId, null)).rejects.toBeInstanceOf(
+    await expect(service.recommend(userId)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -139,7 +153,7 @@ describe('MusicService', () => {
     });
     spotifyService.searchTracks.mockResolvedValue([]);
 
-    await expect(service.recommend(userId, null)).rejects.toBeInstanceOf(
+    await expect(service.recommend(userId)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -160,7 +174,7 @@ describe('MusicService', () => {
       url: 'https://open.spotify.com/playlist/sp-pl',
     });
 
-    await service.recommend(userId, null);
+    await service.recommend(userId);
 
     expect(cryptoService.decrypt).toHaveBeenCalledWith('enc-token');
     expect(spotifyService.createPlaylist).toHaveBeenCalledWith(
@@ -190,7 +204,7 @@ describe('MusicService', () => {
     });
     spotifyService.createPlaylist.mockRejectedValue(new Error('spotify down'));
 
-    const result = await service.recommend(userId, null);
+    const result = await service.recommend(userId);
     expect(result.id).toBe('pl-1');
     expect(playlistRepo.update).not.toHaveBeenCalled();
   });

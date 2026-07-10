@@ -5,6 +5,7 @@ import { EmotionsService } from '../emotions/emotions.service';
 import { AiService } from '../ai/ai.service';
 import { SpotifyService, SpotifyTrack } from '../spotify/spotify.service';
 import { UsersService } from '../users/users.service';
+import { PreferencesService } from '../preferences/preferences.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { Playlist } from '../playlists/playlist.entity';
 import { PlaylistSong } from '../playlists/playlist-song.entity';
@@ -22,17 +23,18 @@ export class MusicService {
     private readonly aiService: AiService,
     private readonly spotifyService: SpotifyService,
     private readonly usersService: UsersService,
+    private readonly preferencesService: PreferencesService,
     private readonly cryptoService: CryptoService,
   ) {}
 
-  async recommend(
-    userId: string,
-    comment: string | null,
-  ): Promise<PlaylistResDto> {
+  async recommend(userId: string): Promise<PlaylistResDto> {
     const emotion = await this.emotionsService.findTodayLatest(userId);
     if (!emotion) {
       throw new NotFoundException('No emotion analysis found for today');
     }
+
+    const preference = await this.preferencesService.findByUserId(userId);
+    const comment = preference ? JSON.stringify(preference.data) : null;
 
     const { keywords, title } = await this.aiService.extractKeywords(
       emotion.emotions,
