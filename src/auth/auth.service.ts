@@ -6,6 +6,7 @@ import { UnauthorizedException } from '../common/exceptions/unauthorized.excepti
 import { RedisService } from '../redis/redis.service';
 import { UsersService } from '../users/users.service';
 import { PreferencesService } from '../preferences/preferences.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { TokenResDto } from './dto/token.res.dto';
 
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly redisService: RedisService,
     private readonly preferencesService: PreferencesService,
+    private readonly cryptoService: CryptoService,
   ) {}
 
   async loginWithCode(code: string): Promise<TokenResDto> {
@@ -48,6 +50,13 @@ export class AuthService {
         displayName: profile.display_name,
         profileImageUrl: profile.images?.[0]?.url ?? null,
       });
+    }
+
+    if (spotifyTokens.refresh_token) {
+      await this.usersService.updateSpotifyRefreshToken(
+        user.id,
+        this.cryptoService.encrypt(spotifyTokens.refresh_token),
+      );
     }
 
     return this.issueTokens(user.id, user.email);

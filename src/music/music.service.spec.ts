@@ -5,6 +5,8 @@ import { MusicService } from './music.service';
 import { EmotionsService } from '../emotions/emotions.service';
 import { AiService } from '../ai/ai.service';
 import { SpotifyService } from '../spotify/spotify.service';
+import { UsersService } from '../users/users.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 import { Emotion } from '../emotions/emotion.entity';
 import { Playlist } from '../playlists/playlist.entity';
 
@@ -12,7 +14,9 @@ describe('MusicService', () => {
   let service: MusicService;
   let emotionsService: { findTodayLatest: jest.Mock };
   let aiService: { extractKeywords: jest.Mock };
-  let spotifyService: { searchTracks: jest.Mock };
+  let spotifyService: { searchTracks: jest.Mock; createPlaylist: jest.Mock };
+  let usersService: { findOne: jest.Mock };
+  let cryptoService: { decrypt: jest.Mock };
 
   const userId = 'user-1';
   const emotion = {
@@ -70,13 +74,19 @@ describe('MusicService', () => {
     findOneOrFail: jest.fn().mockResolvedValue(savedPlaylist),
   };
 
+  const playlistRepo = { update: jest.fn().mockResolvedValue(undefined) };
+
   beforeEach(async () => {
     emotionsService = { findTodayLatest: jest.fn() };
     aiService = { extractKeywords: jest.fn() };
-    spotifyService = { searchTracks: jest.fn() };
+    spotifyService = { searchTracks: jest.fn(), createPlaylist: jest.fn() };
+    usersService = { findOne: jest.fn().mockResolvedValue(null) };
+    cryptoService = { decrypt: jest.fn((v: string) => `dec(${v})`) };
+    playlistRepo.update.mockClear();
 
     const dataSource = {
       transaction: jest.fn((cb: (m: typeof manager) => unknown) => cb(manager)),
+      getRepository: jest.fn(() => playlistRepo),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -86,6 +96,8 @@ describe('MusicService', () => {
         { provide: EmotionsService, useValue: emotionsService },
         { provide: AiService, useValue: aiService },
         { provide: SpotifyService, useValue: spotifyService },
+        { provide: UsersService, useValue: usersService },
+        { provide: CryptoService, useValue: cryptoService },
       ],
     }).compile();
 
@@ -130,5 +142,56 @@ describe('MusicService', () => {
     await expect(service.recommend(userId, null)).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('exports to Spotify when the user has a refresh token', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'happy',
+      title: 'Happy Mix',
+    });
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    usersService.findOne.mockResolvedValue({
+      spotifyId: 'sp-user',
+      spotifyRefreshToken: 'enc-token',
+    });
+    spotifyService.createPlaylist.mockResolvedValue({
+      id: 'sp-pl',
+      url: 'https://open.spotify.com/playlist/sp-pl',
+    });
+
+    await service.recommend(userId, null);
+
+    expect(cryptoService.decrypt).toHaveBeenCalledWith('enc-token');
+    expect(spotifyService.createPlaylist).toHaveBeenCalledWith(
+      'dec(enc-token)',
+      'sp-user',
+      'Happy Mix',
+      ['track-1'],
+    );
+    expect(playlistRepo.update).toHaveBeenCalledWith(
+      'pl-1',
+      expect.objectContaining({
+        spotifyPlaylistUrl: 'https://open.spotify.com/playlist/sp-pl',
+      }),
+    );
+  });
+
+  it('still succeeds when Spotify export fails (best-effort)', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'happy',
+      title: 'Mix',
+    });
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    usersService.findOne.mockResolvedValue({
+      spotifyId: 'sp-user',
+      spotifyRefreshToken: 'enc-token',
+    });
+    spotifyService.createPlaylist.mockRejectedValue(new Error('spotify down'));
+
+    const result = await service.recommend(userId, null);
+    expect(result.id).toBe('pl-1');
+    expect(playlistRepo.update).not.toHaveBeenCalled();
   });
 });

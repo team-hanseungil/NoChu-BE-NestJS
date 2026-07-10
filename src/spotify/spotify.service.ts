@@ -16,6 +16,11 @@ export interface SpotifyTrack {
   durationMs: number;
 }
 
+export interface CreatedSpotifyPlaylist {
+  id: string;
+  url: string | null;
+}
+
 interface SpotifySearchResponse {
   tracks: {
     items: Array<{
@@ -120,5 +125,84 @@ export class SpotifyService {
     this.accessToken = data.access_token;
     this.expiresAt = Date.now() + data.expires_in * 1000;
     return this.accessToken;
+  }
+
+  async createPlaylist(
+    refreshToken: string,
+    spotifyUserId: string,
+    name: string,
+    trackIds: string[],
+  ): Promise<CreatedSpotifyPlaylist> {
+    const token = await this.refreshUserToken(refreshToken);
+
+    const created = await this.userFetch<{
+      id: string;
+      external_urls?: { spotify?: string };
+    }>(token, `/v1/users/${spotifyUserId}/playlists`, {
+      method: 'POST',
+      body: JSON.stringify({ name, public: false }),
+    });
+
+    const uris = trackIds.map((id) => `spotify:track:${id}`);
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < uris.length; i += CHUNK_SIZE) {
+      await this.userFetch(token, `/v1/playlists/${created.id}/tracks`, {
+        method: 'POST',
+        body: JSON.stringify({ uris: uris.slice(i, i + CHUNK_SIZE) }),
+      });
+    }
+
+    return { id: created.id, url: created.external_urls?.spotify ?? null };
+  }
+
+  private async refreshUserToken(refreshToken: string): Promise<string> {
+    const credentials = Buffer.from(
+      `${this.clientId}:${this.clientSecret}`,
+    ).toString('base64');
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      this.logger.error(
+        `Spotify user token refresh failed: ${response.status} ${body}`,
+      );
+      throw new ServiceUnavailableException('Spotify token refresh failed');
+    }
+
+    const data = (await response.json()) as { access_token: string };
+    return data.access_token;
+  }
+
+  private async userFetch<T>(
+    token: string,
+    path: string,
+    init: RequestInit,
+  ): Promise<T> {
+    const response = await fetch(`https://api.spotify.com${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      this.logger.error(`Spotify ${path} failed: ${response.status} ${body}`);
+      throw new ServiceUnavailableException('Spotify API request failed');
+    }
+
+    return (await response.json()) as T;
   }
 }
