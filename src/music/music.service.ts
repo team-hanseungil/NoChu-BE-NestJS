@@ -1,16 +1,20 @@
+import { createHash } from 'crypto';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In } from 'typeorm';
 import { EmotionsService } from '../emotions/emotions.service';
-import { AiService } from '../ai/ai.service';
+import { AiService, AiKeywordResult, EmotionRatios } from '../ai/ai.service';
 import { SpotifyService, SpotifyTrack } from '../spotify/spotify.service';
 import { UsersService } from '../users/users.service';
 import { PreferencesService } from '../preferences/preferences.service';
+import { RedisService } from '../redis/redis.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { Playlist } from '../playlists/playlist.entity';
 import { PlaylistSong } from '../playlists/playlist-song.entity';
 import { Song } from '../songs/song.entity';
 import { PlaylistResDto } from '../playlists/dto/playlist.res.dto';
+
+const KEYWORD_CACHE_TTL = 60 * 60;
 
 @Injectable()
 export class MusicService {
@@ -24,6 +28,7 @@ export class MusicService {
     private readonly spotifyService: SpotifyService,
     private readonly usersService: UsersService,
     private readonly preferencesService: PreferencesService,
+    private readonly redisService: RedisService,
     private readonly cryptoService: CryptoService,
   ) {}
 
@@ -36,7 +41,7 @@ export class MusicService {
     const preference = await this.preferencesService.findByUserId(userId);
     const comment = preference?.data ? JSON.stringify(preference.data) : null;
 
-    const { keywords, title } = await this.aiService.extractKeywords(
+    const { keywords, title } = await this.extractKeywordsCached(
       emotion.emotions,
       comment,
     );
@@ -50,8 +55,27 @@ export class MusicService {
     }
 
     const playlist = await this.save(userId, emotion.emotion, title, tracks);
-    await this.exportToSpotify(userId, playlist, title, tracks);
+    void this.exportToSpotify(userId, playlist, title, tracks);
     return PlaylistResDto.from(playlist);
+  }
+
+  private async extractKeywordsCached(
+    emotions: EmotionRatios,
+    comment: string | null,
+  ): Promise<AiKeywordResult> {
+    const hash = createHash('sha256')
+      .update(JSON.stringify({ emotions, comment }))
+      .digest('hex');
+    const key = `music:kw:${hash}`;
+
+    const cached = await this.redisService.get(key);
+    if (cached) {
+      return JSON.parse(cached) as AiKeywordResult;
+    }
+
+    const result = await this.aiService.extractKeywords(emotions, comment);
+    await this.redisService.set(key, JSON.stringify(result), KEYWORD_CACHE_TTL);
+    return result;
   }
 
   private async exportToSpotify(
@@ -74,8 +98,6 @@ export class MusicService {
         tracks.map((t) => t.id),
       );
 
-      playlist.spotifyPlaylistId = created.id;
-      playlist.spotifyPlaylistUrl = created.url ?? null;
       await this.dataSource.getRepository(Playlist).update(playlist.id, {
         spotifyPlaylistId: created.id,
         spotifyPlaylistUrl: created.url,

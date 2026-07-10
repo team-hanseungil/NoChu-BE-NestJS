@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -10,6 +11,7 @@ import {
 import { User } from '../users/user.entity';
 import { PlaylistSong } from './playlist-song.entity';
 
+@Index(['userId', 'createdAt'])
 @Entity('playlists')
 export class Playlist {
   @PrimaryGeneratedColumn('uuid')

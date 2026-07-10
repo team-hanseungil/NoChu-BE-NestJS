@@ -7,9 +7,12 @@ import { AiService } from '../ai/ai.service';
 import { SpotifyService } from '../spotify/spotify.service';
 import { UsersService } from '../users/users.service';
 import { PreferencesService } from '../preferences/preferences.service';
+import { RedisService } from '../redis/redis.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { Emotion } from '../emotions/emotion.entity';
 import { Playlist } from '../playlists/playlist.entity';
+
+const flush = () => new Promise((resolve) => setImmediate(resolve));
 
 describe('MusicService', () => {
   let service: MusicService;
@@ -18,6 +21,7 @@ describe('MusicService', () => {
   let spotifyService: { searchTracks: jest.Mock; createPlaylist: jest.Mock };
   let usersService: { findOne: jest.Mock };
   let preferencesService: { findByUserId: jest.Mock };
+  let redisService: { get: jest.Mock; set: jest.Mock };
   let cryptoService: { decrypt: jest.Mock };
 
   const userId = 'user-1';
@@ -77,6 +81,10 @@ describe('MusicService', () => {
     spotifyService = { searchTracks: jest.fn(), createPlaylist: jest.fn() };
     usersService = { findOne: jest.fn().mockResolvedValue(null) };
     preferencesService = { findByUserId: jest.fn().mockResolvedValue(null) };
+    redisService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
     cryptoService = { decrypt: jest.fn((v: string) => `dec(${v})`) };
     playlistRepo.update.mockClear();
 
@@ -94,6 +102,7 @@ describe('MusicService', () => {
         { provide: SpotifyService, useValue: spotifyService },
         { provide: UsersService, useValue: usersService },
         { provide: PreferencesService, useValue: preferencesService },
+        { provide: RedisService, useValue: redisService },
         { provide: CryptoService, useValue: cryptoService },
       ],
     }).compile();
@@ -175,6 +184,7 @@ describe('MusicService', () => {
     });
 
     await service.recommend(userId);
+    await flush();
 
     expect(cryptoService.decrypt).toHaveBeenCalledWith('enc-token');
     expect(spotifyService.createPlaylist).toHaveBeenCalledWith(
@@ -205,7 +215,41 @@ describe('MusicService', () => {
     spotifyService.createPlaylist.mockRejectedValue(new Error('spotify down'));
 
     const result = await service.recommend(userId);
+    await flush();
     expect(result.id).toBe('pl-1');
     expect(playlistRepo.update).not.toHaveBeenCalled();
+  });
+
+  it('caches keyword extraction and skips AI on cache hit', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    redisService.get.mockResolvedValue(
+      JSON.stringify({ keywords: 'cached', title: 'Cached Mix' }),
+    );
+
+    const result = await service.recommend(userId);
+
+    expect(aiService.extractKeywords).not.toHaveBeenCalled();
+    expect(spotifyService.searchTracks).toHaveBeenCalledWith('cached');
+    expect(result.title).toBe('Happy Mix');
+  });
+
+  it('caches keyword result on a cache miss', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'fresh',
+      title: 'Fresh Mix',
+    });
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    redisService.get.mockResolvedValue(null);
+
+    await service.recommend(userId);
+
+    expect(aiService.extractKeywords).toHaveBeenCalled();
+    expect(redisService.set).toHaveBeenCalledWith(
+      expect.stringMatching(/^music:kw:/),
+      JSON.stringify({ keywords: 'fresh', title: 'Fresh Mix' }),
+      expect.any(Number),
+    );
   });
 });
