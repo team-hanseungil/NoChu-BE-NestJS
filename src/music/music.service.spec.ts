@@ -118,14 +118,14 @@ describe('MusicService', () => {
     });
     spotifyService.searchTracks.mockResolvedValue([track]);
     preferencesService.findByUserId.mockResolvedValue({
-      data: { genre: ['pop'] },
+      data: { genre: ['pop', 'jazz'], bpm: { min: 80, max: 120 } },
     });
 
     const result = await service.recommend(userId);
 
     expect(aiService.extractKeywords).toHaveBeenCalledWith(
       emotion.emotions,
-      JSON.stringify({ genre: ['pop'] }),
+      'genre: pop, jazz, bpm: 80-120',
     );
     expect(result.id).toBe('pl-1');
     expect(result.title).toBe('Happy Mix');

@@ -39,7 +39,9 @@ export class MusicService {
     }
 
     const preference = await this.preferencesService.findByUserId(userId);
-    const comment = preference?.data ? JSON.stringify(preference.data) : null;
+    const comment = preference?.data
+      ? this.toPreferenceText(preference.data)
+      : null;
 
     const { keywords, title } = await this.extractKeywordsCached(
       emotion.emotions,
@@ -57,6 +59,45 @@ export class MusicService {
     const playlist = await this.save(userId, emotion.emotion, title, tracks);
     void this.exportToSpotify(userId, playlist, title, tracks);
     return PlaylistResDto.from(playlist);
+  }
+
+  private toPreferenceText(data: Record<string, unknown>): string | null {
+    const parts = Object.entries(data)
+      .map(([key, value]) => {
+        const text = this.stringifyValue(value);
+        return text ? `${key}: ${text}` : null;
+      })
+      .filter((part): part is string => part !== null);
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+
+  private stringifyValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => this.stringifyValue(v))
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (typeof value === 'object') {
+      const obj = value as Record<string, unknown>;
+      if ('min' in obj || 'max' in obj) {
+        return `${this.stringifyValue(obj.min)}-${this.stringifyValue(obj.max)}`;
+      }
+      return Object.entries(obj)
+        .map(([k, v]) => `${k} ${this.stringifyValue(v)}`.trim())
+        .filter(Boolean)
+        .join(' ');
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    return '';
   }
 
   private async extractKeywordsCached(
