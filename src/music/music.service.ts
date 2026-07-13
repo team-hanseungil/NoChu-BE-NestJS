@@ -16,6 +16,23 @@ import { PlaylistResDto } from '../playlists/dto/playlist.res.dto';
 
 const KEYWORD_CACHE_TTL = 60 * 60;
 
+const PREFERENCE_LABELS: Record<string, string> = {
+  genres: '선호 장르',
+  favorite_artists: '좋아하는 아티스트',
+  negative_emotion_response: '부정적 감정일 때',
+  positive_emotion_response: '긍정적 감정일 때',
+};
+
+const EMOTION_RESPONSE_TEXT: Record<string, string> = {
+  opposite: '반대되는 분위기의 음악 선호',
+  amplify: '감정을 증폭하는 음악 선호',
+};
+
+const EMOTION_RESPONSE_KEYS = [
+  'negative_emotion_response',
+  'positive_emotion_response',
+];
+
 @Injectable()
 export class MusicService {
   private readonly logger = new Logger(MusicService.name);
@@ -64,8 +81,12 @@ export class MusicService {
   private toPreferenceText(data: Record<string, unknown>): string | null {
     const parts = Object.entries(data)
       .map(([key, value]) => {
-        const text = this.stringifyValue(value);
-        return text ? `${key}: ${text}` : null;
+        const label = PREFERENCE_LABELS[key] ?? key;
+        const text =
+          EMOTION_RESPONSE_KEYS.includes(key) && typeof value === 'string'
+            ? (EMOTION_RESPONSE_TEXT[value] ?? value)
+            : this.stringifyValue(value);
+        return text ? `${label}: ${text}` : null;
       })
       .filter((part): part is string => part !== null);
     return parts.length > 0 ? parts.join(', ') : null;
@@ -84,7 +105,18 @@ export class MusicService {
     if (typeof value === 'object') {
       const obj = value as Record<string, unknown>;
       if ('min' in obj || 'max' in obj) {
-        return `${this.stringifyValue(obj.min)}-${this.stringifyValue(obj.max)}`;
+        const min =
+          obj.min !== undefined && obj.min !== null
+            ? this.stringifyValue(obj.min)
+            : '';
+        const max =
+          obj.max !== undefined && obj.max !== null
+            ? this.stringifyValue(obj.max)
+            : '';
+        if (min && max) return `${min}-${max}`;
+        if (min) return `>=${min}`;
+        if (max) return `<=${max}`;
+        return '';
       }
       return Object.entries(obj)
         .map(([k, v]) => `${k} ${this.stringifyValue(v)}`.trim())
