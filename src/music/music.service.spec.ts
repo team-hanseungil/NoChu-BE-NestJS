@@ -118,14 +118,19 @@ describe('MusicService', () => {
     });
     spotifyService.searchTracks.mockResolvedValue([track]);
     preferencesService.findByUserId.mockResolvedValue({
-      data: { genre: ['pop'] },
+      data: {
+        genres: ['K-pop', '인디'],
+        favorite_artists: ['아이유'],
+        negative_emotion_response: 'opposite',
+        positive_emotion_response: 'amplify',
+      },
     });
 
     const result = await service.recommend(userId);
 
     expect(aiService.extractKeywords).toHaveBeenCalledWith(
       emotion.emotions,
-      JSON.stringify({ genre: ['pop'] }),
+      '선호 장르: K-pop, 인디, 좋아하는 아티스트: 아이유, 부정적 감정일 때: 반대되는 분위기의 음악 선호, 긍정적 감정일 때: 감정을 증폭하는 음악 선호',
     );
     expect(result.id).toBe('pl-1');
     expect(result.title).toBe('Happy Mix');
