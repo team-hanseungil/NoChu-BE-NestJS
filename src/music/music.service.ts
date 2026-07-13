@@ -68,7 +68,8 @@ export class MusicService {
       throw new NotFoundException('No music keywords available');
     }
 
-    const tracks = await this.spotifyService.searchTracks(keywords);
+    const query = keywords.replace(/\s*\|\s*/g, ', ');
+    const tracks = await this.spotifyService.searchTracks(query);
     if (tracks.length === 0) {
       throw new NotFoundException('No tracks found');
     }

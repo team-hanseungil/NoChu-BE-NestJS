@@ -138,6 +138,22 @@ describe('MusicService', () => {
     expect(result.tracks[0].duration).toBe('3:20');
   });
 
+  it('converts pipe-separated keywords to comma-separated for search', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'calming healing | slow tempo | soft ballad',
+      title: 'Mix',
+    });
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    preferencesService.findByUserId.mockResolvedValue(null);
+
+    await service.recommend(userId);
+
+    expect(spotifyService.searchTracks).toHaveBeenCalledWith(
+      'calming healing, slow tempo, soft ballad',
+    );
+  });
+
   it('sends null comment when the user has no preferences', async () => {
     emotionsService.findTodayLatest.mockResolvedValue(emotion);
     aiService.extractKeywords.mockResolvedValue({ keywords: 'k', title: 'T' });
