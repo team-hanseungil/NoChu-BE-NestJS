@@ -74,22 +74,47 @@ export class MusicService {
       throw new NotFoundException('No music keywords available');
     }
 
-    const query = keywords
-      .replace(/\([^)]*\)/g, '')
-      .replace(/\s*\|\s*/g, ', ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const tracks = await this.spotifyService.searchTracks(query);
+    const segments = keywords
+      .split('|')
+      .map((s) =>
+        s
+          .replace(/\([^)]*\)/g, '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      )
+      .filter(Boolean);
+
+    let query = segments.join(', ');
+    let tracks = await this.spotifyService.searchTracks(query);
+    if (tracks.length === 0 && segments.length > 1) {
+      query = segments[0];
+      tracks = await this.spotifyService.searchTracks(query);
+    }
     if (tracks.length === 0) {
       this.logger.warn(
         `Reject recommend: no tracks found for query "${query}" (user ${userId})`,
       );
+      const previous = await this.findLatestPlaylist(userId);
+      if (previous) {
+        this.logger.warn(
+          `Fallback recommend: returning previous playlist for user ${userId}`,
+        );
+        return PlaylistResDto.from(previous);
+      }
       throw new NotFoundException('No tracks found');
     }
 
     const playlist = await this.save(userId, emotion.emotion, title, tracks);
     void this.exportToSpotify(userId, playlist, title, tracks);
     return PlaylistResDto.from(playlist);
+  }
+
+  private findLatestPlaylist(userId: string): Promise<Playlist | null> {
+    return this.dataSource.getRepository(Playlist).findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      relations: ['playlistSongs', 'playlistSongs.song'],
+    });
   }
 
   private toPreferenceText(data: Record<string, unknown>): string | null {
