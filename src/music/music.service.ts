@@ -74,7 +74,11 @@ export class MusicService {
       throw new NotFoundException('No music keywords available');
     }
 
-    const query = keywords.replace(/\s*\|\s*/g, ', ');
+    const query = keywords
+      .replace(/\([^)]*\)/g, '')
+      .replace(/\s*\|\s*/g, ', ')
+      .replace(/\s+/g, ' ')
+      .trim();
     const tracks = await this.spotifyService.searchTracks(query);
     if (tracks.length === 0) {
       this.logger.warn(

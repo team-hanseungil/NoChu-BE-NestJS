@@ -154,6 +154,22 @@ describe('MusicService', () => {
     );
   });
 
+  it('strips parenthetical confidence annotations from the search query', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'uplifting bright (happy 0.86) | energetic fast (happy 0.86)',
+      title: 'Mix',
+    });
+    spotifyService.searchTracks.mockResolvedValue([track]);
+    preferencesService.findByUserId.mockResolvedValue(null);
+
+    await service.recommend(userId);
+
+    expect(spotifyService.searchTracks).toHaveBeenCalledWith(
+      'uplifting bright, energetic fast',
+    );
+  });
+
   it('sends null comment when the user has no preferences', async () => {
     emotionsService.findTodayLatest.mockResolvedValue(emotion);
     aiService.extractKeywords.mockResolvedValue({ keywords: 'k', title: 'T' });
