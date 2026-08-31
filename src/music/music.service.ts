@@ -94,12 +94,27 @@ export class MusicService {
       this.logger.warn(
         `Reject recommend: no tracks found for query "${query}" (user ${userId})`,
       );
+      const previous = await this.findLatestPlaylist(userId);
+      if (previous) {
+        this.logger.warn(
+          `Fallback recommend: returning previous playlist for user ${userId}`,
+        );
+        return PlaylistResDto.from(previous);
+      }
       throw new NotFoundException('No tracks found');
     }
 
     const playlist = await this.save(userId, emotion.emotion, title, tracks);
     void this.exportToSpotify(userId, playlist, title, tracks);
     return PlaylistResDto.from(playlist);
+  }
+
+  private findLatestPlaylist(userId: string): Promise<Playlist | null> {
+    return this.dataSource.getRepository(Playlist).findOne({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      relations: ['playlistSongs', 'playlistSongs.song'],
+    });
   }
 
   private toPreferenceText(data: Record<string, unknown>): string | null {

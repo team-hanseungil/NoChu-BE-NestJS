@@ -73,7 +73,10 @@ describe('MusicService', () => {
     findOneOrFail: jest.fn().mockResolvedValue(savedPlaylist),
   };
 
-  const playlistRepo = { update: jest.fn().mockResolvedValue(undefined) };
+  const playlistRepo = {
+    update: jest.fn().mockResolvedValue(undefined),
+    findOne: jest.fn().mockResolvedValue(null),
+  };
 
   beforeEach(async () => {
     emotionsService = { findTodayLatest: jest.fn() };
@@ -87,6 +90,8 @@ describe('MusicService', () => {
     };
     cryptoService = { decrypt: jest.fn((v: string) => `dec(${v})`) };
     playlistRepo.update.mockClear();
+    playlistRepo.findOne.mockClear();
+    playlistRepo.findOne.mockResolvedValue(null);
 
     const dataSource = {
       transaction: jest.fn((cb: (m: typeof manager) => unknown) => cb(manager)),
@@ -214,7 +219,7 @@ describe('MusicService', () => {
     );
   });
 
-  it('throws NotFoundException when spotify returns no tracks', async () => {
+  it('throws NotFoundException when spotify returns no tracks and no previous playlist exists', async () => {
     emotionsService.findTodayLatest.mockResolvedValue(emotion);
     aiService.extractKeywords.mockResolvedValue({
       keywords: 'happy',
@@ -225,6 +230,23 @@ describe('MusicService', () => {
     await expect(service.recommend(userId)).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('falls back to the previous playlist when spotify returns no tracks', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'happy',
+      title: 'Mix',
+    });
+    spotifyService.searchTracks.mockResolvedValue([]);
+    playlistRepo.findOne.mockResolvedValue(savedPlaylist);
+
+    const result = await service.recommend(userId);
+
+    expect(playlistRepo.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId } }),
+    );
+    expect(result.id).toBe('pl-1');
   });
 
   it('exports to Spotify when the user has a refresh token', async () => {
