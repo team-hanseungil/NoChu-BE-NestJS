@@ -52,6 +52,9 @@ export class MusicService {
   async recommend(userId: string): Promise<PlaylistResDto> {
     const emotion = await this.emotionsService.findTodayLatest(userId);
     if (!emotion) {
+      this.logger.warn(
+        `Reject recommend: no emotion analysis today for user ${userId}`,
+      );
       throw new NotFoundException('No emotion analysis found for today');
     }
 
@@ -65,12 +68,18 @@ export class MusicService {
       comment,
     );
     if (!keywords?.trim()) {
+      this.logger.warn(
+        `Reject recommend: no keywords from AI for user ${userId}`,
+      );
       throw new NotFoundException('No music keywords available');
     }
 
     const query = keywords.replace(/\s*\|\s*/g, ', ');
     const tracks = await this.spotifyService.searchTracks(query);
     if (tracks.length === 0) {
+      this.logger.warn(
+        `Reject recommend: no tracks found for query "${query}" (user ${userId})`,
+      );
       throw new NotFoundException('No tracks found');
     }
 
