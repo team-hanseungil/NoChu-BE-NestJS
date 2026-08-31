@@ -74,12 +74,22 @@ export class MusicService {
       throw new NotFoundException('No music keywords available');
     }
 
-    const query = keywords
-      .replace(/\([^)]*\)/g, '')
-      .replace(/\s*\|\s*/g, ', ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const tracks = await this.spotifyService.searchTracks(query);
+    const segments = keywords
+      .split('|')
+      .map((s) =>
+        s
+          .replace(/\([^)]*\)/g, '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      )
+      .filter(Boolean);
+
+    let query = segments.join(', ');
+    let tracks = await this.spotifyService.searchTracks(query);
+    if (tracks.length === 0 && segments.length > 1) {
+      query = segments[0];
+      tracks = await this.spotifyService.searchTracks(query);
+    }
     if (tracks.length === 0) {
       this.logger.warn(
         `Reject recommend: no tracks found for query "${query}" (user ${userId})`,

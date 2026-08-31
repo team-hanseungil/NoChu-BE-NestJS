@@ -170,6 +170,29 @@ describe('MusicService', () => {
     );
   });
 
+  it('falls back to the first keyword segment when the full query has no matches', async () => {
+    emotionsService.findTodayLatest.mockResolvedValue(emotion);
+    aiService.extractKeywords.mockResolvedValue({
+      keywords: 'uplifting bright | energetic fast | obscure long tail phrase',
+      title: 'Mix',
+    });
+    spotifyService.searchTracks
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([track]);
+    preferencesService.findByUserId.mockResolvedValue(null);
+
+    await service.recommend(userId);
+
+    expect(spotifyService.searchTracks).toHaveBeenNthCalledWith(
+      1,
+      'uplifting bright, energetic fast, obscure long tail phrase',
+    );
+    expect(spotifyService.searchTracks).toHaveBeenNthCalledWith(
+      2,
+      'uplifting bright',
+    );
+  });
+
   it('sends null comment when the user has no preferences', async () => {
     emotionsService.findTodayLatest.mockResolvedValue(emotion);
     aiService.extractKeywords.mockResolvedValue({ keywords: 'k', title: 'T' });
